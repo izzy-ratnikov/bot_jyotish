@@ -1,36 +1,50 @@
 import io
 import matplotlib.pyplot as plt
 from datetime import datetime
-import asyncio
+import swisseph as swe
 
-def calculate_planet_positions(birth_date, birth_time, location):
+
+async def calculate_planet_positions(birth_date, birth_time, location):
     """
-    Заглушка для вычисления позиций планет на основе даты, времени и местоположения.
-    Вместо этого используйте библиотеку астрологии, например, `pyswisseph`.
+    Вычисляет позиции планет с использованием библиотеки pyswisseph.
     """
-    # Пример возвращаемых данных: имя планеты и примерная долгота
-    return [
-        ('☉', 5),    # Солнце
-        ('☽', 45),   # Луна
-        ('♂', 80),   # Марс
-        ('♀', 115),  # Венера
-        ('☿', 155),  # Меркурий
-        ('♃', 200),  # Юпитер
-        ('♄', 270),  # Сатурн
+    # Конфигурация
+    swe.set_ephe_path('.')  # Укажите путь к эфемеридам Swiss Ephemeris
+
+    # Преобразуем дату и время
+    birth_datetime = datetime.strptime(f"{birth_date} {birth_time}", "%Y-%m-%d %H:%M:%S")
+    julian_day = swe.julday(
+        birth_datetime.year, birth_datetime.month, birth_datetime.day,
+        birth_datetime.hour + birth_datetime.minute / 60 + birth_datetime.second / 3600
+    )
+
+    planets = [
+        (swe.SUN, "☉"),
+        (swe.MOON, "☽"),
+        (swe.MARS, "♂"),
+        (swe.VENUS, "♀"),
+        (swe.MERCURY, "☿"),
+        (swe.JUPITER, "♃"),
+        (swe.SATURN, "♄")
     ]
 
+    positions = []
+    for planet, symbol in planets:
+        position, _ = swe.calc_ut(julian_day, planet)
+        positions.append((symbol, position[0]))  # position[0] — долгота планеты
 
-def draw_south_indian_chart(planets):
+    return positions
+
+async def draw_south_indian_chart(planets):
     """
     Генерирует South Indian Chart на основе позиций планет.
     Возвращает изображение в формате BytesIO.
     """
     fig, ax = plt.subplots(figsize=(8, 8))
-
-    # Рисуем карту
     outer_size = 4
     mid = outer_size / 2
 
+    # Рисуем базовую структуру
     ax.plot([0, outer_size], [0, 0], 'k-', linewidth=1)
     ax.plot([0, outer_size], [outer_size, outer_size], 'k-', linewidth=1)
     ax.plot([0, 0], [0, outer_size], 'k-', linewidth=1)
@@ -44,12 +58,29 @@ def draw_south_indian_chart(planets):
     ax.plot([outer_size, mid], [mid, 0], 'k-', linewidth=1)
     ax.plot([mid, 0], [0, mid], 'k-', linewidth=1)
 
-    # Добавляем планеты
+    # Координаты для каждого дома в South Indian Chart
+    house_positions = {
+        1: (outer_size * 3 / 4, outer_size * 3 / 4),
+        2: (outer_size / 2, outer_size * 3 / 4),
+        3: (outer_size / 4, outer_size * 3 / 4),
+        4: (outer_size / 4, outer_size / 2),
+        5: (outer_size / 4, outer_size / 4),
+        6: (outer_size / 2, outer_size / 4),
+        7: (outer_size * 3 / 4, outer_size / 4),
+        8: (outer_size * 3 / 4, outer_size / 2),
+        9: (outer_size / 2, outer_size / 2),
+        10: (outer_size / 2, outer_size / 4),
+        11: (outer_size / 4, outer_size / 2),
+        12: (outer_size * 3 / 4, outer_size / 4),
+    }
+
+    # Добавляем символы планет в дома
     for planet, position in planets:
-        house = ((int(position / 30) + 1) % 12) or 12
-        x = mid if house % 2 == 1 else outer_size - mid
-        y = mid if house % 2 == 0 else outer_size - mid
-        ax.text(x, y, planet, fontsize=12, ha='center', va='center')
+        house = int(position / 30) + 1  # Определяем дом (каждые 30° = 1 дом)
+        x, y = house_positions.get(house, (mid, mid))  # Получаем координаты дома
+        ax.text(
+            x, y, planet, fontsize=20, ha='center', va='center', color='black', fontweight='bold'
+        )
 
     plt.axis('equal')
     plt.axis('off')
@@ -62,18 +93,5 @@ def draw_south_indian_chart(planets):
     return buf
 
 
-async def build_astrological_chart(birth_date, birth_time, location):
-    """
-    Выполняет полный цикл расчёта и генерации карты.
-    """
-    # Преобразуем дату и время в объект datetime
-    birth_datetime = datetime.strptime(f"{birth_date} {birth_time}", "%Y-%m-%d %H:%M:%S")
 
-    # Вычисляем координаты и позиции планет
-    planets = calculate_planet_positions(birth_date, birth_time, location)
-
-    # Генерируем South Indian Chart
-    chart_image = draw_south_indian_chart(planets)
-
-    return location, chart_image
 

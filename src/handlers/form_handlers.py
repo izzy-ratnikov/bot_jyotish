@@ -5,7 +5,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.filters import Command
 from aiogram.types import BufferedInputFile
 from aiogram.fsm.state import State, StatesGroup
-from src.services.astrology import build_astrological_chart
+from src.services.astrology import calculate_planet_positions, draw_south_indian_chart
 
 router = Router()
 
@@ -60,13 +60,13 @@ async def process_location(message: types.Message, state: FSMContext):
 
     await state.update_data(location=location)
     user_data = await state.get_data()
-
+    birth_date = user_data['birth_date']  # дата рождения
+    birth_time = user_data['birth_time']
     # Генерация астрологической карты
-    coordinates, chart_image = await build_astrological_chart(
-        user_data['birth_date'], user_data['birth_time'], user_data['location']
-    )
+    planets_positions = await calculate_planet_positions(birth_date, birth_time, location)
+    chart_image = await draw_south_indian_chart(planets_positions)
 
     input_file = BufferedInputFile(chart_image.read(), filename="chart.png")
-    await message.answer_photo(photo=input_file, caption=f"Ваш South Indian Chart. Локация: {coordinates}")
+    await message.answer_photo(photo=input_file, caption=f"Ваш South Indian Chart. Локация: {location}")
     await state.clear()
 
