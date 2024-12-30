@@ -35,6 +35,7 @@ async def calculate_planet_positions(birth_date, birth_time, location):
 
     return positions
 
+
 async def draw_south_indian_chart(planets):
     """
     Генерирует South Indian Chart на основе позиций планет.
@@ -74,13 +75,23 @@ async def draw_south_indian_chart(planets):
         12: (outer_size * 3 / 4, outer_size / 4),
     }
 
-    # Добавляем символы планет в дома
+    # Группируем планеты по домам
+    house_planets = {i: [] for i in range(1, 13)}  # Инициализируем словарь для планет в домах
     for planet, position in planets:
-        house = int(position / 30) + 1  # Определяем дом (каждые 30° = 1 дом)
-        x, y = house_positions.get(house, (mid, mid))  # Получаем координаты дома
-        ax.text(
-            x, y, planet, fontsize=20, ha='center', va='center', color='black', fontweight='bold'
-        )
+        house = int(position / 30) + 1  # Определяем дом
+        house_planets[house].append(planet)
+
+    # Размещаем планеты с корректировкой позиций
+    for house, planet_list in house_planets.items():
+        base_x, base_y = house_positions.get(house, (mid, mid))  # Центр дома
+        for i, planet in enumerate(planet_list):
+            # Смещения для планет внутри дома
+            offset_x = (i % 3 - 1) * 0.2  # Горизонтальное смещение
+            offset_y = (i // 3 - 1) * 0.2  # Вертикальное смещение
+            ax.text(
+                base_x + offset_x, base_y + offset_y, planet,
+                fontsize=16, ha='center', va='center', color='black', fontweight='bold'
+            )
 
     plt.axis('equal')
     plt.axis('off')
@@ -91,7 +102,3 @@ async def draw_south_indian_chart(planets):
     buf.seek(0)
     plt.close(fig)
     return buf
-
-
-
-
