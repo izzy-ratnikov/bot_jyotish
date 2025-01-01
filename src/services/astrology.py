@@ -23,9 +23,10 @@ async def calculate_planet_positions(birth_date, birth_time, location):
         (swe.SATURN, "♄")
     ]
 
-    positions = []
-    zodiac_signs = {}  # Для хранения знаков зодиака и градусов планет
     zodiac_names = ["♈", "♉", "♊", "♋", "♌", "♍", "♎", "♏", "♐", "♑", "♒", "♓"]  # Знаки зодиака
+
+    zodiac_signs = {}  # Для хранения знаков зодиака и градусов планет
+    positions = []  # Для хранения позиций планет
 
     for planet, symbol in planets:
         position, _ = swe.calc_ut(julian_day, planet)
@@ -33,8 +34,12 @@ async def calculate_planet_positions(birth_date, birth_time, location):
         zodiac_index = int(longitude // 30)  # Индекс знака (каждый знак - 30 градусов)
         zodiac_sign = zodiac_names[zodiac_index]
         degree = int(longitude % 30)  # Оставшиеся градусы в знаке
+        minutes = int((longitude % 1) * 60)  # Минуты
+        seconds = int(((longitude % 1) * 60 % 1) * 60)  # Секунды
+
+        # Сохраняем позицию и знак с градусами
         positions.append((symbol, longitude))
-        zodiac_signs[symbol] = (zodiac_sign, degree)
+        zodiac_signs[symbol] = (zodiac_sign, degree, minutes, seconds)
 
     return positions, zodiac_signs
 

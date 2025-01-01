@@ -68,8 +68,12 @@ async def process_location(message: types.Message, state: FSMContext):
     input_file = BufferedInputFile(chart_image.read(), filename="chart.png")
     await message.answer_photo(photo=input_file, caption=f"Ваш South Indian Chart. Локация: {location}")
 
-    # Отправляем знаки зодиака с градусами
-    zodiac_info = "\n".join([f"{planet}: {zodiac} {degree}°" for planet, (zodiac, degree) in zodiac_signs.items()])
+    # Формируем строку с позициями планет
+    zodiac_info = "\n".join([
+        f"{symbol} {zodiac_sign} {degree}˚{minutes:02d}'{seconds:02d}\""
+        for symbol, (zodiac_sign, degree, minutes, seconds) in zodiac_signs.items()
+    ])
+
     await message.answer(f"Знаки зодиака с градусами:\n{zodiac_info}")
 
     await state.clear()
