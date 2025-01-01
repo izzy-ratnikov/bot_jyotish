@@ -53,20 +53,23 @@ async def process_birth_time(message: types.Message, state: FSMContext):
 @router.message(Form.waiting_for_location)
 async def process_location(message: types.Message, state: FSMContext):
     location = message.text.strip()
-    # Простая проверка (опционально, можно улучшить)
     if len(location) < 2:
         await message.answer("Не удалось распознать локацию. Пожалуйста, введите координаты или название города.")
         return
 
     await state.update_data(location=location)
     user_data = await state.get_data()
-    birth_date = user_data['birth_date']  # дата рождения
+    birth_date = user_data['birth_date']
     birth_time = user_data['birth_time']
-    # Генерация астрологической карты
-    planets_positions = await calculate_planet_positions(birth_date, birth_time, location)
+
+    planets_positions, zodiac_signs = await calculate_planet_positions(birth_date, birth_time, location)
     chart_image = await draw_south_indian_chart(planets_positions)
 
     input_file = BufferedInputFile(chart_image.read(), filename="chart.png")
     await message.answer_photo(photo=input_file, caption=f"Ваш South Indian Chart. Локация: {location}")
-    await state.clear()
 
+    # Отправляем знаки зодиака с градусами
+    zodiac_info = "\n".join([f"{planet}: {zodiac} {degree}°" for planet, (zodiac, degree) in zodiac_signs.items()])
+    await message.answer(f"Знаки зодиака с градусами:\n{zodiac_info}")
+
+    await state.clear()

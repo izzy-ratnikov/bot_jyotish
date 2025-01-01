@@ -1,17 +1,12 @@
-import io
 import matplotlib.pyplot as plt
 from datetime import datetime
 import swisseph as swe
+import io
 
 
 async def calculate_planet_positions(birth_date, birth_time, location):
-    """
-    Вычисляет позиции планет с использованием библиотеки pyswisseph.
-    """
-    # Конфигурация
     swe.set_ephe_path('.')  # Укажите путь к эфемеридам Swiss Ephemeris
 
-    # Преобразуем дату и время
     birth_datetime = datetime.strptime(f"{birth_date} {birth_time}", "%Y-%m-%d %H:%M:%S")
     julian_day = swe.julday(
         birth_datetime.year, birth_datetime.month, birth_datetime.day,
@@ -29,18 +24,22 @@ async def calculate_planet_positions(birth_date, birth_time, location):
     ]
 
     positions = []
+    zodiac_signs = {}  # Для хранения знаков зодиака и градусов планет
+    zodiac_names = ["♈", "♉", "♊", "♋", "♌", "♍", "♎", "♏", "♐", "♑", "♒", "♓"]  # Знаки зодиака
+
     for planet, symbol in planets:
         position, _ = swe.calc_ut(julian_day, planet)
-        positions.append((symbol, position[0]))  # position[0] — долгота планеты
+        longitude = position[0]
+        zodiac_index = int(longitude // 30)  # Индекс знака (каждый знак - 30 градусов)
+        zodiac_sign = zodiac_names[zodiac_index]
+        degree = int(longitude % 30)  # Оставшиеся градусы в знаке
+        positions.append((symbol, longitude))
+        zodiac_signs[symbol] = (zodiac_sign, degree)
 
-    return positions
+    return positions, zodiac_signs
 
 
 async def draw_south_indian_chart(planets):
-    """
-    Генерирует South Indian Chart на основе позиций планет.
-    Возвращает изображение в формате BytesIO.
-    """
     fig, ax = plt.subplots(figsize=(8, 8))
     outer_size = 4
     mid = outer_size / 2
@@ -96,7 +95,6 @@ async def draw_south_indian_chart(planets):
     plt.axis('equal')
     plt.axis('off')
 
-    # Сохраняем изображение в BytesIO
     buf = io.BytesIO()
     plt.savefig(buf, format='png', bbox_inches='tight')
     buf.seek(0)
