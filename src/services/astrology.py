@@ -107,4 +107,3 @@ async def draw_south_indian_chart(planets):
     buf.seek(0)
     plt.close(fig)
     return buf
-
