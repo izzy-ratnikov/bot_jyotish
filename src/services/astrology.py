@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 from datetime import datetime
+
 import swisseph as swe
 import io
 
@@ -20,7 +21,9 @@ async def calculate_planet_positions(birth_date, birth_time, location):
         (swe.VENUS, "♀"),
         (swe.MERCURY, "☿"),
         (swe.JUPITER, "♃"),
-        (swe.SATURN, "♄")
+        (swe.SATURN, "♄"),
+        (swe.MEAN_NODE, "☊"),
+        (swe.TRUE_NODE, "☋")
     ]
 
     zodiac_names = ["♈", "♉", "♊", "♋", "♌", "♍", "♎", "♏", "♐", "♑", "♒", "♓"]  # Знаки зодиака
@@ -99,9 +102,9 @@ async def draw_south_indian_chart(planets):
 
     plt.axis('equal')
     plt.axis('off')
-
     buf = io.BytesIO()
     plt.savefig(buf, format='png', bbox_inches='tight')
     buf.seek(0)
     plt.close(fig)
     return buf
+

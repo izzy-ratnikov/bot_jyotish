@@ -5,6 +5,9 @@ from aiogram.fsm.context import FSMContext
 from aiogram.filters import Command
 from aiogram.types import BufferedInputFile
 from aiogram.fsm.state import State, StatesGroup
+from sqlalchemy.exc import SQLAlchemyError
+
+from src.database.models.models import Session, UserData
 from src.services.astrology import calculate_planet_positions, draw_south_indian_chart
 
 router = Router()
@@ -61,6 +64,23 @@ async def process_location(message: types.Message, state: FSMContext):
     user_data = await state.get_data()
     birth_date = user_data['birth_date']
     birth_time = user_data['birth_time']
+
+    # Сохраняем данные в базу
+    session = Session()
+    try:
+        user_data_entry = UserData(
+    location=location,
+    birth_date=datetime.strptime(user_data['birth_date'], "%Y-%m-%d").date(),
+    birth_time=datetime.strptime(user_data['birth_time'], "%H:%M:%S").time(),
+)
+        session.add(user_data_entry)
+        session.commit()
+        await message.answer("Данные сохранены в базе данных.")
+    except SQLAlchemyError as e:
+        session.rollback()
+        await message.answer(f"Произошла ошибка при сохранении данных: {str(e)}")
+    finally:
+        session.close()
 
     planets_positions, zodiac_signs = await calculate_planet_positions(birth_date, birth_time, location)
     chart_image = await draw_south_indian_chart(planets_positions)
