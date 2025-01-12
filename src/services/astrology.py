@@ -7,6 +7,7 @@ import io
 
 async def calculate_planet_positions(birth_date, birth_time, location):
     swe.set_ephe_path('.')  # Укажите путь к эфемеридам Swiss Ephemeris
+    swe.set_sid_mode(swe.SIDM_LAHIRI)
 
     birth_datetime = datetime.strptime(f"{birth_date} {birth_time}", "%Y-%m-%d %H:%M:%S")
     julian_day = swe.julday(
@@ -32,7 +33,7 @@ async def calculate_planet_positions(birth_date, birth_time, location):
     positions = []  # Для хранения позиций планет
 
     for planet, symbol in planets:
-        position, _ = swe.calc_ut(julian_day, planet)
+        position, _ = swe.calc_ut(julian_day, planet, swe.FLG_SIDEREAL)
         longitude = position[0]
         zodiac_index = int(longitude // 30)  # Индекс знака (каждый знак - 30 градусов)
         zodiac_sign = zodiac_names[zodiac_index]
