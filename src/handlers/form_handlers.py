@@ -69,6 +69,7 @@ async def process_location(message: types.Message, state: FSMContext):
     session = Session()
     try:
         user_data_entry = UserData(
+    telegram_id=message.from_user.id,
     location=location,
     birth_date=datetime.strptime(user_data['birth_date'], "%Y-%m-%d").date(),
     birth_time=datetime.strptime(user_data['birth_time'], "%H:%M:%S").time(),
