@@ -9,6 +9,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from src.database.models.models import Session, UserData
 from src.services.astrology import calculate_planet_positions, draw_south_indian_chart
+from src.utils.keyboards import start_keyboard, retry_keyboard
 
 router = Router()
 
@@ -20,8 +21,20 @@ class Form(StatesGroup):
 
 
 @router.message(Command("start"))
+async def start_handler(message: types.Message, state: FSMContext):
+    await message.answer(
+        "Привет! Я астрологический бот. Нажмите кнопку ниже, чтобы рассчитать свою карту Джйотиш.",
+        reply_markup=start_keyboard
+    )
+    await state.clear()
+
+
+@router.message(lambda message: message.text == "Рассчитать карту Джйотиш")
 async def get_user_data(message: types.Message, state: FSMContext):
-    await message.answer("Привет! Я астрологический бот. Пожалуйста, введи свой день рождения (в формате ГГГГ-ММ-ДД).")
+    await message.answer(
+        "Пожалуйста, введи свой день рождения (в формате ГГГГ-ММ-ДД).",
+        reply_markup=types.ReplyKeyboardRemove()
+    )
     await state.set_state(Form.waiting_for_birth_date)
 
 
@@ -69,11 +82,11 @@ async def process_location(message: types.Message, state: FSMContext):
     session = Session()
     try:
         user_data_entry = UserData(
-    telegram_id=message.from_user.id,
-    location=location,
-    birth_date=datetime.strptime(user_data['birth_date'], "%Y-%m-%d").date(),
-    birth_time=datetime.strptime(user_data['birth_time'], "%H:%M:%S").time(),
-)
+            telegram_id=message.from_user.id,
+            location=location,
+            birth_date=datetime.strptime(user_data['birth_date'], "%Y-%m-%d").date(),
+            birth_time=datetime.strptime(user_data['birth_time'], "%H:%M:%S").time(),
+        )
         session.add(user_data_entry)
         session.commit()
         await message.answer("Данные сохранены в базе данных.")
@@ -96,5 +109,14 @@ async def process_location(message: types.Message, state: FSMContext):
     ])
 
     await message.answer(f"Знаки зодиака с градусами:\n{zodiac_info}")
-
+    await message.answer(
+        "Если хотите рассчитать новую карту, нажмите на кнопку ниже.",
+        reply_markup=retry_keyboard
+    )
     await state.clear()
+
+
+@router.message(lambda message: message.text == "Рассчитать ещё")
+async def retry_handler(message: types.Message, state: FSMContext):
+    await state.clear()
+    await get_user_data(message, state)
