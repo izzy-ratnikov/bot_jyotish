@@ -16,15 +16,15 @@ async def calculate_planet_positions(birth_date, birth_time, location):
     )
 
     planets = [
-        (swe.SUN, "☉"),
-        (swe.MOON, "☽"),
-        (swe.MARS, "♂"),
-        (swe.VENUS, "♀"),
-        (swe.MERCURY, "☿"),
-        (swe.JUPITER, "♃"),
-        (swe.SATURN, "♄"),
-        (swe.MEAN_NODE, "☊"),  # Раху
-        (swe.TRUE_NODE, "☋")  # Кету
+        (swe.SUN, "Su"),
+        (swe.MOON, "Mo"),
+        (swe.MARS, "Ma"),
+        (swe.VENUS, "Ve"),
+        (swe.MERCURY, "Me"),
+        (swe.JUPITER, "Jp"),
+        (swe.SATURN, "Sa"),
+        (swe.MEAN_NODE, "Ra"),  # Раху
+        (swe.TRUE_NODE, "Ke")  # Кету
     ]
 
     zodiac_names = ["♈", "♉", "♊", "♋", "♌", "♍", "♎", "♏", "♐", "♑", "♒", "♓"]  # Знаки зодиака
@@ -40,10 +40,10 @@ async def calculate_planet_positions(birth_date, birth_time, location):
         longitude = position[0]
 
         # Специальная обработка для Раху и Кету
-        if symbol == "☊":  # Раху
+        if symbol == "Ra":  # Раху
             rahu_position = longitude
             continue
-        elif symbol == "☋":  # Кету
+        elif symbol == "Ke":  # Кету
             ketu_position = longitude
             continue
 
@@ -64,11 +64,11 @@ async def calculate_planet_positions(birth_date, birth_time, location):
         ketu_position = (rahu_position + 180) % 360
 
         # Добавляем Раху и Кету в список позиций и знаков
-        positions.append(("☊", rahu_position))
-        positions.append(("☋", ketu_position))
+        positions.append(("Ra", rahu_position))
+        positions.append(("Ke", ketu_position))
 
         # Вычисляем знаки для Раху и Кету
-        for symbol, position in [("☊", rahu_position), ("☋", ketu_position)]:
+        for symbol, position in [("Ra", rahu_position), ("Ke", ketu_position)]:
             zodiac_index = int(position // 30)
             zodiac_sign = zodiac_names[zodiac_index]
             degree = int(position % 30)
