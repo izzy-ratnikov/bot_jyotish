@@ -32,7 +32,7 @@ async def start_handler(message: types.Message, state: FSMContext):
 @router.message(lambda message: message.text == "Рассчитать карту Джйотиш")
 async def get_user_data(message: types.Message, state: FSMContext):
     await message.answer(
-        "Пожалуйста, введи свой день рождения (в формате ГГГГ-ММ-ДД).",
+        "Пожалуйста, введи свой день рождения (в формате ДД-ММ-ГГГГ).",
         reply_markup=types.ReplyKeyboardRemove()
     )
     await state.set_state(Form.waiting_for_birth_date)
@@ -42,9 +42,9 @@ async def get_user_data(message: types.Message, state: FSMContext):
 async def process_birth_date(message: types.Message, state: FSMContext):
     birth_date = message.text.strip()
     try:
-        datetime.strptime(birth_date, "%Y-%m-%d")
+        datetime.strptime(birth_date, "%d-%m-%Y")
     except ValueError:
-        await message.answer("Неверный формат даты. Пожалуйста, введите дату в формате ГГГГ-ММ-ДД.")
+        await message.answer("Неверный формат даты. Пожалуйста, введите дату в формате ДД-ММ-ГГГГ.")
         return
 
     await state.update_data(birth_date=birth_date)
@@ -84,7 +84,7 @@ async def process_location(message: types.Message, state: FSMContext):
         user_data_entry = UserData(
             telegram_id=message.from_user.id,
             location=location,
-            birth_date=datetime.strptime(user_data['birth_date'], "%Y-%m-%d").date(),
+            birth_date=datetime.strptime(user_data['birth_date'], "%d-%m-%Y").date(),
             birth_time=datetime.strptime(user_data['birth_time'], "%H:%M:%S").time(),
         )
         session.add(user_data_entry)

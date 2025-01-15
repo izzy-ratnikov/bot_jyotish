@@ -9,7 +9,7 @@ async def calculate_planet_positions(birth_date, birth_time, location):
     swe.set_ephe_path('.')  # Укажите путь к эфемеридам Swiss Ephemeris
     swe.set_sid_mode(swe.SIDM_LAHIRI)
 
-    birth_datetime = datetime.strptime(f"{birth_date} {birth_time}", "%Y-%m-%d %H:%M:%S")
+    birth_datetime = datetime.strptime(f"{birth_date} {birth_time}", "%d-%m-%Y %H:%M:%S")
     julian_day = swe.julday(
         birth_datetime.year, birth_datetime.month, birth_datetime.day,
         birth_datetime.hour + birth_datetime.minute / 60 + birth_datetime.second / 3600
@@ -23,8 +23,8 @@ async def calculate_planet_positions(birth_date, birth_time, location):
         (swe.MERCURY, "☿"),
         (swe.JUPITER, "♃"),
         (swe.SATURN, "♄"),
-        (swe.MEAN_NODE, "☊"),
-        (swe.TRUE_NODE, "☋")
+        (swe.MEAN_NODE, "☊"),  # Раху
+        (swe.TRUE_NODE, "☋")  # Кету
     ]
 
     zodiac_names = ["♈", "♉", "♊", "♋", "♌", "♍", "♎", "♏", "♐", "♑", "♒", "♓"]  # Знаки зодиака
@@ -32,9 +32,22 @@ async def calculate_planet_positions(birth_date, birth_time, location):
     zodiac_signs = {}  # Для хранения знаков зодиака и градусов планет
     positions = []  # Для хранения позиций планет
 
+    rahu_position = None
+    ketu_position = None
+
     for planet, symbol in planets:
         position, _ = swe.calc_ut(julian_day, planet, swe.FLG_SIDEREAL)
         longitude = position[0]
+
+        # Специальная обработка для Раху и Кету
+        if symbol == "☊":  # Раху
+            rahu_position = longitude
+            continue
+        elif symbol == "☋":  # Кету
+            ketu_position = longitude
+            continue
+
+        # Для остальных планет вычисляем положение как обычно
         zodiac_index = int(longitude // 30)  # Индекс знака (каждый знак - 30 градусов)
         zodiac_sign = zodiac_names[zodiac_index]
         degree = int(longitude % 30)  # Оставшиеся градусы в знаке
@@ -44,6 +57,25 @@ async def calculate_planet_positions(birth_date, birth_time, location):
         # Сохраняем позицию и знак с градусами
         positions.append((symbol, longitude))
         zodiac_signs[symbol] = (zodiac_sign, degree, minutes, seconds)
+
+    # Теперь корректируем расположение Раху и Кету
+    if rahu_position is not None and ketu_position is not None:
+        # Сдвигаем Кету на 180 градусов относительно Раху
+        ketu_position = (rahu_position + 180) % 360
+
+        # Добавляем Раху и Кету в список позиций и знаков
+        positions.append(("☊", rahu_position))
+        positions.append(("☋", ketu_position))
+
+        # Вычисляем знаки для Раху и Кету
+        for symbol, position in [("☊", rahu_position), ("☋", ketu_position)]:
+            zodiac_index = int(position // 30)
+            zodiac_sign = zodiac_names[zodiac_index]
+            degree = int(position % 30)
+            minutes = int((position % 1) * 60)
+            seconds = int(((position % 1) * 60 % 1) * 60)
+
+            zodiac_signs[symbol] = (zodiac_sign, degree, minutes, seconds)
 
     return positions, zodiac_signs
 
