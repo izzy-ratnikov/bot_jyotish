@@ -100,7 +100,7 @@ async def process_location(message: types.Message, state: FSMContext):
     chart_image = await draw_south_indian_chart(planets_positions)
 
     input_file = BufferedInputFile(chart_image.read(), filename="chart.png")
-    await message.answer_photo(photo=input_file, caption=f"Ваш South Indian Chart. Локация: {location}")
+    await message.answer_photo(photo=input_file, caption=f"Ваш South Indian Chart.")
 
     # Формируем строку с позициями планет
     zodiac_info = "\n".join([

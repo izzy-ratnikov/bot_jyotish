@@ -4,11 +4,25 @@ from datetime import datetime
 import swisseph as swe
 import io
 
+from geopy import Nominatim
+
 
 async def calculate_planet_positions(birth_date, birth_time, location):
     swe.set_ephe_path('.')  # Укажите путь к эфемеридам Swiss Ephemeris
-    swe.set_sid_mode(swe.SIDM_LAHIRI)
+    swe.set_sid_mode(swe.FLG_SIDEREAL)
 
+    # Определение координат для указанной локации
+    geolocator = Nominatim(user_agent="astro_bot")
+    loc = geolocator.geocode(location)
+    if not loc:
+        raise ValueError(f"Локация '{location}' не найдена.")
+    latitude = loc.latitude
+    longitude = loc.longitude
+
+    # Устанавливаем топоцентрические координаты
+    swe.set_topo(longitude, latitude, 0)
+
+    # Преобразуем дату и время в формат Julian Day
     birth_datetime = datetime.strptime(f"{birth_date} {birth_time}", "%d-%m-%Y %H:%M:%S")
     julian_day = swe.julday(
         birth_datetime.year, birth_datetime.month, birth_datetime.day,
@@ -36,7 +50,7 @@ async def calculate_planet_positions(birth_date, birth_time, location):
     ketu_position = None
 
     for planet, symbol in planets:
-        position, _ = swe.calc_ut(julian_day, planet, swe.FLG_SIDEREAL)
+        position, _ = swe.calc_ut(julian_day, planet, swe.FLG_SIDEREAL | swe.FLG_TOPOCTR)
         longitude = position[0]
 
         # Специальная обработка для Раху и Кету
