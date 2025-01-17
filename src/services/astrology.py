@@ -9,7 +9,7 @@ from geopy import Nominatim
 
 async def calculate_planet_positions(birth_date, birth_time, location):
     swe.set_ephe_path('.')  # Укажите путь к эфемеридам Swiss Ephemeris
-    swe.set_sid_mode(swe.FLG_SIDEREAL)
+    swe.set_sid_mode(swe.SIDM_LAHIRI)
 
     # Определение координат для указанной локации
     geolocator = Nominatim(user_agent="astro_bot")
@@ -18,6 +18,9 @@ async def calculate_planet_positions(birth_date, birth_time, location):
         raise ValueError(f"Локация '{location}' не найдена.")
     latitude = loc.latitude
     longitude = loc.longitude
+
+    print(f"Координаты для '{location}':")
+    print(f"Широта: {latitude}, Долгота: {longitude}")
 
     # Устанавливаем топоцентрические координаты
     swe.set_topo(longitude, latitude, 0)
