@@ -1,14 +1,14 @@
 import matplotlib.pyplot as plt
 from datetime import datetime
-
+from timezonefinder import TimezoneFinder
 import swisseph as swe
 import io
-
+from pytz import timezone, utc
 from geopy import Nominatim
 
 
 async def calculate_planet_positions(birth_date, birth_time, location):
-    swe.set_ephe_path('.')  # Укажите путь к эфемеридам Swiss Ephemeris
+    swe.set_ephe_path('.')
     swe.set_sid_mode(swe.SIDM_LAHIRI)
 
     # Определение координат для указанной локации
@@ -16,21 +16,30 @@ async def calculate_planet_positions(birth_date, birth_time, location):
     loc = geolocator.geocode(location)
     if not loc:
         raise ValueError(f"Локация '{location}' не найдена.")
-    latitude = loc.latitude
-    longitude = loc.longitude
+    latitude, longitude = loc.latitude, loc.longitude
 
-    print(f"Координаты для '{location}':")
-    print(f"Широта: {latitude}, Долгота: {longitude}")
+    print(f"Координаты для '{location}': Широта: {latitude}, Долгота: {longitude}")
+
+    # Определяем часовой пояс для локации
+    tf = TimezoneFinder()
+    tz_name = tf.timezone_at(lat=latitude, lng=longitude)
+    if not tz_name:
+        raise ValueError(f"Не удалось определить часовой пояс для локации '{location}'.")
+    local_tz = timezone(tz_name)
+
+    # Конвертация времени рождения в UTC
+    birth_datetime = datetime.strptime(f"{birth_date} {birth_time}", "%d-%m-%Y %H:%M:%S")
+    local_datetime = local_tz.localize(birth_datetime)
+    utc_datetime = local_datetime.astimezone(utc)
+
+    julian_day = swe.julday(
+        utc_datetime.year, utc_datetime.month, utc_datetime.day,
+        utc_datetime.hour + utc_datetime.minute / 60 + utc_datetime.second / 3600
+    )
 
     # Устанавливаем топоцентрические координаты
-    swe.set_topo(longitude, latitude, 0)
-
-    # Преобразуем дату и время в формат Julian Day
-    birth_datetime = datetime.strptime(f"{birth_date} {birth_time}", "%d-%m-%Y %H:%M:%S")
-    julian_day = swe.julday(
-        birth_datetime.year, birth_datetime.month, birth_datetime.day,
-        birth_datetime.hour + birth_datetime.minute / 60 + birth_datetime.second / 3600
-    )
+    elevation = 0  # Можно получить из внешнего API
+    swe.set_topo(longitude, latitude, elevation)
 
     planets = [
         (swe.SUN, "Su"),
@@ -40,20 +49,19 @@ async def calculate_planet_positions(birth_date, birth_time, location):
         (swe.MERCURY, "Me"),
         (swe.JUPITER, "Jp"),
         (swe.SATURN, "Sa"),
-        (swe.MEAN_NODE, "Ra"),  # Раху
-        (swe.TRUE_NODE, "Ke")  # Кету
+        (swe.TRUE_NODE, "Ra"),
+        (swe.TRUE_NODE, "Ke")
     ]
 
-    zodiac_names = ["♈", "♉", "♊", "♋", "♌", "♍", "♎", "♏", "♐", "♑", "♒", "♓"]  # Знаки зодиака
-
-    zodiac_signs = {}  # Для хранения знаков зодиака и градусов планет
-    positions = []  # Для хранения позиций планет
+    zodiac_names = ["♈", "♉", "♊", "♋", "♌", "♍", "♎", "♏", "♐", "♑", "♒", "♓"]
+    zodiac_signs = {}
+    positions = []
 
     rahu_position = None
     ketu_position = None
 
     for planet, symbol in planets:
-        position, _ = swe.calc_ut(julian_day, planet, swe.FLG_SIDEREAL | swe.FLG_TOPOCTR)
+        position, _ = swe.calc_ut(julian_day, planet, swe.FLG_SIDEREAL | swe.FLG_SWIEPH)
         longitude = position[0]
 
         # Специальная обработка для Раху и Кету
