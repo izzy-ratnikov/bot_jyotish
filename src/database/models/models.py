@@ -1,8 +1,10 @@
 from sqlalchemy import create_engine, Column, Integer, String, Date, Time
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+from pathlib import Path
 
 Base = declarative_base()
+
 
 class UserData(Base):
     __tablename__ = 'user_data'
@@ -14,7 +16,8 @@ class UserData(Base):
     birth_time = Column(Time, nullable=False)
 
 
-engine = create_engine('sqlite:///userdata.db')
+db_path = Path(__file__).parent / "userdata.db"
+engine = create_engine(f'sqlite:///{db_path}')
 Base.metadata.create_all(engine)
 
 Session = sessionmaker(bind=engine)
