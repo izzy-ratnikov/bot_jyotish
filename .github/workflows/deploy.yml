@@ -28,7 +28,7 @@ jobs:
         run: |
           ssh -T -p 51821 root@185.189.58.71 << 'EOF'
             echo "Deploying to production server..."
-            cd /Users/vladratnikov/Code/bot_jyotish/src
+            cd ~/bot_jyotish/src
             git pull origin main
             source .venv/bin/activate
             pip install -r requirements.txt
