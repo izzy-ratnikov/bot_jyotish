@@ -25,8 +25,8 @@ jobs:
         echo "  Port 51821" >> ~/.ssh/config
         echo "  User root" >> ~/.ssh/config
         echo "  IdentityFile ~/.ssh/id_rsa_user1" >> ~/.ssh/config
+        echo "  StrictHostKeyChecking no" >> ~/.ssh/config
 
-    # 3. Настройка SSH для User2
     - name: Configure SSH for User2
       run: |
         echo "${{ secrets.SSH_PRIVATE_KEY_USER2 }}" > ~/.ssh/id_rsa_user2
@@ -36,6 +36,7 @@ jobs:
         echo "  Port 51821" >> ~/.ssh/config
         echo "  User root" >> ~/.ssh/config
         echo "  IdentityFile ~/.ssh/id_rsa_user2" >> ~/.ssh/config
+        echo "  StrictHostKeyChecking no" >> ~/.ssh/config
 
     # 4. Деплой через User1
     - name: Deploy with User1
