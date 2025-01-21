@@ -29,7 +29,7 @@ jobs:
           mkdir -p ~/.ssh  # Создаем директорию ~/.ssh
           echo "$PRIVATE_KEY" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -p 51821 -H $SERVER_IP >> ~/.ssh/known_hosts  # Указываем порт для ключа
+          ssh-keyscan -H $SERVER_IP -p 51821 >> ~/.ssh/known_hosts  # Указываем порт для ключа
 
       - name: Deploy to production server
         env:
