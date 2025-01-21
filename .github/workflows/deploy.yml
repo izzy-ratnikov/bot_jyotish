@@ -24,16 +24,20 @@ jobs:
           source .venv/bin/activate
           pip install -r requirements.txt
 
-      - name: Deploy to production server
-        env:
-          PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-          SERVER_USER: root
-          SERVER_IP: 185.189.58.71
+      - name: Set up SSH for deployment
         run: |
+          mkdir -p ~/.ssh  # Создаем директорию ~/.ssh
           echo "$PRIVATE_KEY" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H $SERVER_IP >> ~/.ssh/known_hosts
-          ssh $SERVER_USER@$SERVER_IP << 'EOF'
+          ssh-keyscan -H $SERVER_IP >> ~/.ssh/known_hosts  # Добавляем сервер в список известных
+
+      - name: Deploy to production server
+        env:
+          PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}  # Приватный ключ из Secrets
+          SERVER_USER: root  # Имя пользователя для SSH подключения
+          SERVER_IP: 185.189.58.71  # IP сервера
+        run: |
+          ssh -i ~/.ssh/id_rsa -p 51821 $SERVER_USER@$SERVER_IP << 'EOF'
             echo "Deploying to production server..."
             cd /Users/vladratnikov/Code/bot_jyotish/src
             git pull origin main
