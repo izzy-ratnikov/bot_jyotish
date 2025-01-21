@@ -1,0 +1,62 @@
+name: Deploy Jyotish Bot
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    # 1. Проверка кода из репозитория
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    # 2. Настройка SSH для User1
+    - name: Configure SSH for User1
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.SSH_PRIVATE_KEY_USER1 }}" > ~/.ssh/id_rsa_user1
+        chmod 600 ~/.ssh/id_rsa_user1
+        echo "Host server-user1" >> ~/.ssh/config
+        echo "  HostName 185.189.58.71" >> ~/.ssh/config
+        echo "  Port 51821" >> ~/.ssh/config
+        echo "  User root" >> ~/.ssh/config
+        echo "  IdentityFile ~/.ssh/id_rsa_user1" >> ~/.ssh/config
+
+    # 3. Настройка SSH для User2
+    - name: Configure SSH for User2
+      run: |
+        echo "${{ secrets.SSH_PRIVATE_KEY_USER2 }}" > ~/.ssh/id_rsa_user2
+        chmod 600 ~/.ssh/id_rsa_user2
+        echo "Host server-user2" >> ~/.ssh/config
+        echo "  HostName 185.189.58.71" >> ~/.ssh/config
+        echo "  Port 51821" >> ~/.ssh/config
+        echo "  User root" >> ~/.ssh/config
+        echo "  IdentityFile ~/.ssh/id_rsa_user2" >> ~/.ssh/config
+
+    # 4. Деплой через User1
+    - name: Deploy with User1
+      run: |
+        ssh server-user1 << 'EOF'
+          echo "Deploying as User1"
+          cd /Users/vladratnikov/Code/bot_jyotish/src
+          git pull origin main
+          source .venv/bin/activate
+          pip install -r requirements.txt
+          systemctl restart jyotish_bot.service
+        EOF
+
+    # 5. Деплой через User2
+    - name: Deploy with User2
+      run: |
+        ssh server-user2 << 'EOF'
+          echo "Deploying as User2"
+          cd /Users/vladratnikov/Code/bot_jyotish/src
+          git pull origin main
+          source .venv/bin/activate
+          pip install -r requirements.txt
+          systemctl restart jyotish_bot.service
+        EOF
