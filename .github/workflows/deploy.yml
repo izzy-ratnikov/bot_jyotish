@@ -37,7 +37,7 @@ jobs:
           SERVER_USER: root  # Имя пользователя для SSH подключения
           SERVER_IP: 185.189.58.71  # IP сервера
         run: |
-          ssh -i ~/.ssh/id_rsa -p 51821 $SERVER_USER@$SERVER_IP << 'EOF'
+          ssh -T -i ~/.ssh/id_rsa -p 51821 $SERVER_USER@$SERVER_IP << 'EOF'
             echo "Deploying to production server..."
             cd /Users/vladratnikov/Code/bot_jyotish/src
             git pull origin main
