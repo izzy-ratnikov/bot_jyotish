@@ -17,6 +17,7 @@ class UserData(Base):
 
 
 db_path = Path(__file__).parent / "userdata.db"
+print(f"Путь к базе данных: {db_path}")
 engine = create_engine(f'sqlite:///{db_path}')
 Base.metadata.create_all(engine)
 
