@@ -13,31 +13,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - name: Set up SSH agent
+        uses: webfactory/ssh-agent@v0.5.3
         with:
-          python-version: '3.12'
-
-      - name: Install dependencies
-        run: |
-          python -m venv .venv
-          source .venv/bin/activate
-          pip install -r requirements.txt
-
-      - name: Set up SSH for deployment
-        run: |
-          mkdir -p ~/.ssh
-          ssh-keyscan -p 51821 185.189.58.71 >> ~/.ssh/known_hosts
-          chmod 644 ~/.ssh/known_hosts
-
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
       - name: Deploy to production server
-        env:
-          PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}  # Приватный ключ из Secrets
-          SERVER_USER: root  # Имя пользователя для SSH подключения
-          SERVER_IP: 185.189.58.71  # IP сервера
         run: |
-          ssh -T -i ~/.ssh/id_rsa -p 51821 $SERVER_USER@$SERVER_IP << 'EOF'
+          ssh -T -p 51821 root@185.189.58.71 << 'EOF'
             echo "Deploying to production server..."
             cd /Users/vladratnikov/Code/bot_jyotish/src
             git pull origin main
