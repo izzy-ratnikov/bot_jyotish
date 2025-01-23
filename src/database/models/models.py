@@ -1,7 +1,6 @@
 from sqlalchemy import create_engine, Column, Integer, String, Date, Time
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-from pathlib import Path
 
 Base = declarative_base()
 
@@ -16,9 +15,11 @@ class UserData(Base):
     birth_time = Column(Time, nullable=False)
 
 
-db_path = Path(__file__).parent / "userdata.db"
-print(f"Путь к базе данных: {db_path}")
-engine = create_engine(f'sqlite:///{db_path}')
+# Параметры подключения для PostgreSQL
+DATABASE_URL = "postgresql://jyotish:P6SSw0RdJyot1_sh@109.205.180.137:5432/jyotish"
+
+# Создаем подключение
+engine = create_engine(DATABASE_URL)
 Base.metadata.create_all(engine)
 
 Session = sessionmaker(bind=engine)
