@@ -102,6 +102,20 @@ async def calculate_planet_positions(birth_date, birth_time, location):
 
             zodiac_signs[symbol] = (zodiac_sign, degree, minutes, seconds)
 
+    house_positions = swe.houses(julian_day, latitude, longitude, b'A')  # Получаем дома и Асцендент
+    asc_position = house_positions[0][0]  # Асцендент - первый элемент
+
+    # Определяем знак, градусы, минуты и секунды для Асцендента
+    zodiac_index = int(asc_position // 30)
+    zodiac_sign = zodiac_names[zodiac_index]
+    degree = int(asc_position % 30)
+    minutes = int((asc_position % 1) * 60)
+    seconds = int(((asc_position % 1) * 60 % 1) * 60)
+
+    # Добавляем Асцендент в позиции и знаки
+    positions.append(("Asc", asc_position))
+    zodiac_signs["Asc"] = (zodiac_sign, degree, minutes, seconds)
+
     return positions, zodiac_signs
 
 
