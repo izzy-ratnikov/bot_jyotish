@@ -137,15 +137,19 @@ async def calculate_asc(birth_date, birth_time, location):
     elevation = 0
     swe.set_topo(longitude, latitude, elevation)
 
+    # Знаки зодиака
     zodiac_names = ["♈", "♉", "♊", "♋", "♌", "♍", "♎", "♏", "♐", "♑", "♒", "♓"]
     zodiac_signs = {}
     positions = []
 
-    house_positions = swe.houses(julian_day, latitude, longitude, b'S')
-    asc_position = house_positions[0][0]
+    # Получаем позиции домов
+    house_positions = swe.houses(julian_day, latitude, longitude, b'P')
+    asc_position = house_positions[0][0] - 23.8
+    asc_position = asc_position % 360
 
     zodiac_index = int(asc_position // 30)
     zodiac_sign = zodiac_names[zodiac_index]
+
     degree = int(asc_position % 30)
     minutes = int((asc_position % 1) * 60)
     seconds = int(((asc_position % 1) * 60 % 1) * 60)
