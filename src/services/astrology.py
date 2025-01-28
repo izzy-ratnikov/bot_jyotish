@@ -1,5 +1,7 @@
 import matplotlib.pyplot as plt
 from datetime import datetime
+
+import numpy as np
 from timezonefinder import TimezoneFinder
 import swisseph as swe
 import io
@@ -102,17 +104,52 @@ async def calculate_planet_positions(birth_date, birth_time, location):
 
             zodiac_signs[symbol] = (zodiac_sign, degree, minutes, seconds)
 
-    house_positions = swe.houses(julian_day, latitude, longitude, b'A')  # Получаем дома и Асцендент
-    asc_position = house_positions[0][0]  # Асцендент - первый элемент
+    return positions, zodiac_signs
 
-    # Определяем знак, градусы, минуты и секунды для Асцендента
+
+async def calculate_asc(birth_date, birth_time, location):
+    swe.set_ephe_path('.')
+    swe.set_sid_mode(swe.SIDM_LAHIRI)
+
+    geolocator = Nominatim(user_agent="astro_bot")
+    loc = geolocator.geocode(location)
+    if not loc:
+        raise ValueError(f"Локация '{location}' не найдена.")
+    latitude, longitude = loc.latitude, loc.longitude
+
+    print(f"Координаты для '{location}': Широта: {latitude}, Долгота: {longitude}")
+
+    tf = TimezoneFinder()
+    tz_name = tf.timezone_at(lat=latitude, lng=longitude)
+    if not tz_name:
+        raise ValueError(f"Не удалось определить часовой пояс для локации '{location}'.")
+    local_tz = timezone(tz_name)
+
+    birth_datetime = datetime.strptime(f"{birth_date} {birth_time}", "%d-%m-%Y %H:%M:%S")
+    local_datetime = local_tz.localize(birth_datetime)
+    utc_datetime = local_datetime.astimezone(utc)
+
+    julian_day = swe.julday(
+        utc_datetime.year, utc_datetime.month, utc_datetime.day,
+        utc_datetime.hour + utc_datetime.minute / 60 + utc_datetime.second / 3600
+    )
+
+    elevation = 0
+    swe.set_topo(longitude, latitude, elevation)
+
+    zodiac_names = ["♈", "♉", "♊", "♋", "♌", "♍", "♎", "♏", "♐", "♑", "♒", "♓"]
+    zodiac_signs = {}
+    positions = []
+
+    house_positions = swe.houses(julian_day, latitude, longitude, b'P')
+    asc_position = house_positions[0][0]
+
     zodiac_index = int(asc_position // 30)
     zodiac_sign = zodiac_names[zodiac_index]
     degree = int(asc_position % 30)
     minutes = int((asc_position % 1) * 60)
     seconds = int(((asc_position % 1) * 60 % 1) * 60)
 
-    # Добавляем Асцендент в позиции и знаки
     positions.append(("Asc", asc_position))
     zodiac_signs["Asc"] = (zodiac_sign, degree, minutes, seconds)
 
@@ -138,44 +175,40 @@ async def draw_south_indian_chart(planets):
     ax.plot([outer_size, mid], [mid, 0], 'k-', linewidth=1)
     ax.plot([mid, 0], [0, mid], 'k-', linewidth=1)
 
-    # Координаты для каждого дома в South Indian Chart
-    house_positions = {
-        1: (outer_size * 3 / 4, outer_size * 3 / 4),
-        2: (outer_size / 2, outer_size * 3 / 4),
-        3: (outer_size / 4, outer_size * 3 / 4),
-        4: (outer_size / 4, outer_size / 2),
-        5: (outer_size / 4, outer_size / 4),
-        6: (outer_size / 2, outer_size / 4),
-        7: (outer_size * 3 / 4, outer_size / 4),
-        8: (outer_size * 3 / 4, outer_size / 2),
-        9: (outer_size / 2, outer_size / 2),
-        10: (outer_size / 2, outer_size / 4),
-        11: (outer_size / 4, outer_size / 2),
-        12: (outer_size * 3 / 4, outer_size / 4),
-    }
+    # Определяем координаты для размещения планет и асцендента
+    def get_position(degree):
+        angle = (degree / 360) * 2 * np.pi  # Преобразуем в радианы
+        x = mid + (outer_size / 2 - 0.2) * np.cos(angle)  # 0.2 для отступа от центра
+        y = mid + (outer_size / 2 - 0.2) * np.sin(angle)
+        return x, y
 
-    # Группируем планеты по домам
-    house_planets = {i: [] for i in range(1, 13)}  # Инициализируем словарь для планет в домах
-    for planet, position in planets:
-        house = int(position / 30) + 1  # Определяем дом
-        house_planets[house].append(planet)
+    # Размещаем планеты
+    for symbol, longitude in planets:
+        zodiac_index = int(longitude // 30)
+        degree = longitude % 30
+        # Преобразуем в градусы для отображения
+        position_degree = zodiac_index * 30 + degree
+        x, y = get_position(position_degree)
+        ax.text(x, y, symbol, fontsize=18, ha='center', va='center', color='black', fontweight='bold')
 
-    # Размещаем планеты с корректировкой позиций
-    for house, planet_list in house_planets.items():
-        base_x, base_y = house_positions.get(house, (mid, mid))  # Центр дома
-        for i, planet in enumerate(planet_list):
-            # Смещения для планет внутри дома
-            offset_x = (i % 3 - 1) * 0.2  # Горизонтальное смещение
-            offset_y = (i // 3 - 1) * 0.2  # Вертикальное смещение
-            ax.text(
-                base_x + offset_x, base_y + offset_y, planet,
-                fontsize=16, ha='center', va='center', color='black', fontweight='bold'
-            )
+    for house_number in range(1, 13):
+        house_position = (house_number - 1) * 30 + 40  # Смещаем на 60 градусов вперед
+        x, y = get_position(house_position)
 
-    plt.axis('equal')
-    plt.axis('off')
+        # Смещаем текст к центру квадрата
+        x_offset = 0.15 * np.cos((house_position / 360) * 2 * np.pi)
+        y_offset = 0.15 * np.sin((house_position / 360) * 2 * np.pi)
+
+        ax.text(x - x_offset, y - y_offset, str(house_number), fontsize=10, ha='center', va='center', color='black')
+
+    ax.set_xlim(-0.5, outer_size + 0.5)
+    ax.set_ylim(-0.5, outer_size + 0.5)
+    ax.set_aspect('equal')
+    ax.axis('off')
+
     buf = io.BytesIO()
-    plt.savefig(buf, format='png', bbox_inches='tight')
-    buf.seek(0)
+    plt.savefig(buf, format='png', bbox_inches='tight', pad_inches=0.1)
     plt.close(fig)
+    buf.seek(0)
+
     return buf

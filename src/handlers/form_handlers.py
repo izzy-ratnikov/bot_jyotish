@@ -8,7 +8,7 @@ from aiogram.fsm.state import State, StatesGroup
 from sqlalchemy.exc import SQLAlchemyError
 
 from src.database.models.models import Session, UserData
-from src.services.astrology import calculate_planet_positions, draw_south_indian_chart
+from src.services.astrology import calculate_planet_positions, draw_south_indian_chart, calculate_asc
 from src.utils.keyboards import start_keyboard, retry_keyboard
 
 router = Router()
@@ -75,8 +75,13 @@ async def process_location(message: types.Message, state: FSMContext):
 
     await state.update_data(location=location)
     user_data = await state.get_data()
-    birth_date = user_data['birth_date']
-    birth_time = user_data['birth_time']
+    birth_date = user_data.get('birth_date')
+    birth_time = user_data.get('birth_time')
+
+    # Проверка наличия даты и времени рождения
+    if not birth_date or not birth_time:
+        await message.answer("Не указаны дата или время рождения. Пожалуйста, попробуйте снова.")
+        return
 
     # Сохраняем данные в базу
     session = Session()
@@ -84,8 +89,8 @@ async def process_location(message: types.Message, state: FSMContext):
         user_data_entry = UserData(
             telegram_id=message.from_user.id,
             location=location,
-            birth_date=datetime.strptime(user_data['birth_date'], "%d-%m-%Y").date(),
-            birth_time=datetime.strptime(user_data['birth_time'], "%H:%M:%S").time(),
+            birth_date=datetime.strptime(birth_date, "%d-%m-%Y").date(),
+            birth_time=datetime.strptime(birth_time, "%H:%M:%S").time(),
         )
         session.add(user_data_entry)
         session.commit()
@@ -97,18 +102,24 @@ async def process_location(message: types.Message, state: FSMContext):
         session.close()
 
     planets_positions, zodiac_signs = await calculate_planet_positions(birth_date, birth_time, location)
+    asc_positions, asc_zodiac_signs = await calculate_asc(birth_date, birth_time, location)
+
+    ascendant_info = asc_zodiac_signs.get("Asc")
+
+    ascendant_string = f"Asc {ascendant_info[0]} {ascendant_info[1]}˚{ascendant_info[2]:02d}'{ascendant_info[3]:02d}\""
+
     chart_image = await draw_south_indian_chart(planets_positions)
 
     input_file = BufferedInputFile(chart_image.read(), filename="chart.png")
-    await message.answer_photo(photo=input_file, caption=f"Ваш South Indian Chart.")
+    await message.answer_photo(photo=input_file, caption="Ваш South Indian Chart.")
 
-    # Формируем строку с позициями планет
     zodiac_info = "\n".join([
         f"{symbol} {zodiac_sign} {degree}˚{minutes:02d}'{seconds:02d}\""
         for symbol, (zodiac_sign, degree, minutes, seconds) in zodiac_signs.items()
     ])
 
-    await message.answer(f"Знаки зодиака с градусами:\n{zodiac_info}")
+    await message.answer(f"Знаки зодиака с градусами:\n{zodiac_info}\n{ascendant_string}")
+
     await message.answer(
         "Если хотите рассчитать новую карту, нажмите на кнопку ниже.",
         reply_markup=retry_keyboard
