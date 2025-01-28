@@ -141,7 +141,7 @@ async def calculate_asc(birth_date, birth_time, location):
     zodiac_signs = {}
     positions = []
 
-    house_positions = swe.houses(julian_day, latitude, longitude, b'P')
+    house_positions = swe.houses(julian_day, latitude, longitude, b'S')
     asc_position = house_positions[0][0]
 
     zodiac_index = int(asc_position // 30)
