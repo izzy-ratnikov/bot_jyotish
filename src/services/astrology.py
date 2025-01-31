@@ -160,15 +160,64 @@ async def calculate_asc(birth_date, birth_time, location):
     return positions, zodiac_signs
 
 
-async def draw_south_indian_chart(planets):
+# async def draw_south_indian_chart(planets):
+#     fig, ax = plt.subplots(figsize=(8, 8))
+#     outer_size = 4
+#     mid = outer_size / 2
+#
+#     # Рисуем структуру карты
+#     ax.plot([0, outer_size], [0, 0], 'k-', linewidth=1)
+#     ax.plot([0, outer_size], [outer_size, outer_size], 'k-', linewidth=1)
+#     ax.plot([0, 0], [0, outer_size], 'k-', linewidth=1)
+#     ax.plot([outer_size, outer_size], [0, outer_size], 'k-', linewidth=1)
+#
+#     ax.plot([0, outer_size], [0, outer_size], 'k-', linewidth=1)
+#     ax.plot([0, outer_size], [outer_size, 0], 'k-', linewidth=1)
+#
+#     ax.plot([0, mid], [mid, outer_size], 'k-', linewidth=1)
+#     ax.plot([mid, outer_size], [outer_size, mid], 'k-', linewidth=1)
+#     ax.plot([outer_size, mid], [mid, 0], 'k-', linewidth=1)
+#     ax.plot([mid, 0], [0, mid], 'k-', linewidth=1)
+#
+#     # Функция для получения позиции с учетом поворота на 45 градусов
+#     def get_position(degree):
+#         angle = (degree / 360) * 2 * np.pi + np.pi / 4  # Поворот на 45 градусов
+#         x = mid + (outer_size / 2 - 0.2) * np.cos(angle)  # 0.2 для отступа от центра
+#         y = mid + (outer_size / 2 - 0.2) * np.sin(angle)
+#         return x, y
+#
+#     # Размещение планет
+#     for symbol, longitude in planets:
+#         zodiac_index = int(longitude // 30)
+#         degree = longitude % 30
+#
+#         # Позиция для размещения планет
+#         position_degree = zodiac_index * 30 + degree  # Позиция без инверсии
+#         x, y = get_position(position_degree)
+#         ax.text(x, y, symbol, fontsize=18, ha='center', va='center', color='black', fontweight='bold')
+#
+#
+#
+#     ax.set_xlim(-0.5, outer_size + 0.5)
+#     ax.set_ylim(-0.5, outer_size + 0.5)
+#     ax.set_aspect('equal')
+#     ax.axis('off')
+#
+#     buf = io.BytesIO()
+#     plt.savefig(buf, format='png', bbox_inches='tight', pad_inches=0.1)
+#     plt.close(fig)
+#     buf.seek(0)
+#
+#     return buf
+
+async def draw_south_indian_chart(ascendant_sign):
     fig, ax = plt.subplots(figsize=(8, 8))
     outer_size = 4
     mid = outer_size / 2
 
-    # Рисуем базовую структуру
     ax.plot([0, outer_size], [0, 0], 'k-', linewidth=1)
     ax.plot([0, outer_size], [outer_size, outer_size], 'k-', linewidth=1)
-    ax.plot([0, 0], [0, outer_size], 'k-', linewidth=1)
+    ax.plot([0, 0], [0, outer_size], 'k-', linewidth=1)  # Левая линия
     ax.plot([outer_size, outer_size], [0, outer_size], 'k-', linewidth=1)
 
     ax.plot([0, outer_size], [0, outer_size], 'k-', linewidth=1)
@@ -179,31 +228,24 @@ async def draw_south_indian_chart(planets):
     ax.plot([outer_size, mid], [mid, 0], 'k-', linewidth=1)
     ax.plot([mid, 0], [0, mid], 'k-', linewidth=1)
 
-    # Определяем координаты для размещения планет и асцендента
     def get_position(degree):
-        angle = (degree / 360) * 2 * np.pi  # Преобразуем в радианы
-        x = mid + (outer_size / 2 - 0.2) * np.cos(angle)  # 0.2 для отступа от центра
+        angle = np.radians(degree)
+        x = mid + (outer_size / 2 - 0.2) * np.cos(angle)
         y = mid + (outer_size / 2 - 0.2) * np.sin(angle)
         return x, y
 
-    # Размещаем планеты
-    for symbol, longitude in planets:
-        zodiac_index = int(longitude // 30)
-        degree = longitude % 30
-        # Преобразуем в градусы для отображения
-        position_degree = zodiac_index * 30 + degree
-        x, y = get_position(position_degree)
-        ax.text(x, y, symbol, fontsize=18, ha='center', va='center', color='black', fontweight='bold')
+    zodiac_signs = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"]
 
-    for house_number in range(1, 13):
-        house_position = (house_number - 1) * 30 + 40  # Смещаем на 60 градусов вперед
-        x, y = get_position(house_position)
+    ascendant_index = zodiac_signs.index(ascendant_sign)
 
-        # Смещаем текст к центру квадрата
-        x_offset = 0.15 * np.cos((house_position / 360) * 2 * np.pi)
-        y_offset = 0.15 * np.sin((house_position / 360) * 2 * np.pi)
+    for i in range(12):
+        sign_index = (ascendant_index + i) % 12
+        degree = 90 + i * 30
+        if degree >= 360:
+            degree -= 360
+        x, y = get_position(degree)
 
-        ax.text(x - x_offset, y - y_offset, str(house_number), fontsize=10, ha='center', va='center', color='black')
+        ax.text(x, y, zodiac_signs[sign_index], fontsize=11, ha='center', va='center', color='black', fontweight='bold')
 
     ax.set_xlim(-0.5, outer_size + 0.5)
     ax.set_ylim(-0.5, outer_size + 0.5)

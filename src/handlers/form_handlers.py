@@ -78,12 +78,10 @@ async def process_location(message: types.Message, state: FSMContext):
     birth_date = user_data.get('birth_date')
     birth_time = user_data.get('birth_time')
 
-    # Проверка наличия даты и времени рождения
     if not birth_date or not birth_time:
         await message.answer("Не указаны дата или время рождения. Пожалуйста, попробуйте снова.")
         return
 
-    # Сохраняем данные в базу
     session = Session()
     try:
         user_data_entry = UserData(
@@ -97,18 +95,39 @@ async def process_location(message: types.Message, state: FSMContext):
         await message.answer("Данные сохранены в базе данных.")
     except SQLAlchemyError as e:
         session.rollback()
-        await message.answer(f"Произошла ошибка при сохранении данных: {str(e)}")
+        await message.answer(f"Ошибка сохранения данных: {str(e)}")
     finally:
         session.close()
 
+    zodiac_to_number = {
+        "♈": "1",
+        "♉": "2",
+        "♊": "3",
+        "♋": "4",
+        "♌": "5",
+        "♍": "6",
+        "♎": "7",
+        "♏": "8",
+        "♐": "9",
+        "♑": "10",
+        "♒": "11",
+        "♓": "12"
+    }
     planets_positions, zodiac_signs = await calculate_planet_positions(birth_date, birth_time, location)
     asc_positions, asc_zodiac_signs = await calculate_asc(birth_date, birth_time, location)
 
     ascendant_info = asc_zodiac_signs.get("Asc")
+    if not ascendant_info:
+        await message.answer("Ошибка: Не удалось получить информацию об асценденте.")
+        return
 
     ascendant_string = f"Asc {ascendant_info[0]} {ascendant_info[1]}˚{ascendant_info[2]:02d}'{ascendant_info[3]:02d}\""
-
-    chart_image = await draw_south_indian_chart(planets_positions)
+    asc_sign = ascendant_info[0]
+    asc_sign_number = zodiac_to_number.get(asc_sign)
+    if not asc_sign_number:
+        await message.answer("Ошибка: Не удалось определить номер знака зодиака для асцендента.")
+        return
+    chart_image = await draw_south_indian_chart(asc_sign_number)
 
     input_file = BufferedInputFile(chart_image.read(), filename="chart.png")
     await message.answer_photo(photo=input_file, caption="Ваш South Indian Chart.")
@@ -119,7 +138,6 @@ async def process_location(message: types.Message, state: FSMContext):
     ])
 
     await message.answer(f"Знаки зодиака с градусами:\n{zodiac_info}\n{ascendant_string}")
-
     await message.answer(
         "Если хотите рассчитать новую карту, нажмите на кнопку ниже.",
         reply_markup=retry_keyboard
