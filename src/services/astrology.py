@@ -1,7 +1,6 @@
 import matplotlib.pyplot as plt
 from datetime import datetime
 
-import numpy as np
 from timezonefinder import TimezoneFinder
 import swisseph as swe
 import io
@@ -160,79 +159,47 @@ async def calculate_asc(birth_date, birth_time, location):
     return positions, zodiac_signs
 
 
-# async def draw_south_indian_chart(planets):
-#     fig, ax = plt.subplots(figsize=(8, 8))
-#     outer_size = 4
-#     mid = outer_size / 2
-#
-#     # Рисуем структуру карты
-#     ax.plot([0, outer_size], [0, 0], 'k-', linewidth=1)
-#     ax.plot([0, outer_size], [outer_size, outer_size], 'k-', linewidth=1)
-#     ax.plot([0, 0], [0, outer_size], 'k-', linewidth=1)
-#     ax.plot([outer_size, outer_size], [0, outer_size], 'k-', linewidth=1)
-#
-#     ax.plot([0, outer_size], [0, outer_size], 'k-', linewidth=1)
-#     ax.plot([0, outer_size], [outer_size, 0], 'k-', linewidth=1)
-#
-#     ax.plot([0, mid], [mid, outer_size], 'k-', linewidth=1)
-#     ax.plot([mid, outer_size], [outer_size, mid], 'k-', linewidth=1)
-#     ax.plot([outer_size, mid], [mid, 0], 'k-', linewidth=1)
-#     ax.plot([mid, 0], [0, mid], 'k-', linewidth=1)
-#
-#     # Функция для получения позиции с учетом поворота на 45 градусов
-#     def get_position(degree):
-#         angle = (degree / 360) * 2 * np.pi + np.pi / 4  # Поворот на 45 градусов
-#         x = mid + (outer_size / 2 - 0.2) * np.cos(angle)  # 0.2 для отступа от центра
-#         y = mid + (outer_size / 2 - 0.2) * np.sin(angle)
-#         return x, y
-#
-#     # Размещение планет
-#     for symbol, longitude in planets:
-#         zodiac_index = int(longitude // 30)
-#         degree = longitude % 30
-#
-#         # Позиция для размещения планет
-#         position_degree = zodiac_index * 30 + degree  # Позиция без инверсии
-#         x, y = get_position(position_degree)
-#         ax.text(x, y, symbol, fontsize=18, ha='center', va='center', color='black', fontweight='bold')
-#
-#
-#
-#     ax.set_xlim(-0.5, outer_size + 0.5)
-#     ax.set_ylim(-0.5, outer_size + 0.5)
-#     ax.set_aspect('equal')
-#     ax.axis('off')
-#
-#     buf = io.BytesIO()
-#     plt.savefig(buf, format='png', bbox_inches='tight', pad_inches=0.1)
-#     plt.close(fig)
-#     buf.seek(0)
-#
-#     return buf
-
-async def draw_south_indian_chart(ascendant_sign):
+async def draw_north_indian_chart(ascendant_sign):
     fig, ax = plt.subplots(figsize=(8, 8))
-    outer_size = 4
-    mid = outer_size / 2
 
-    ax.plot([0, outer_size], [0, 0], 'k-', linewidth=1)
-    ax.plot([0, outer_size], [outer_size, outer_size], 'k-', linewidth=1)
-    ax.plot([0, 0], [0, outer_size], 'k-', linewidth=1)  # Левая линия
-    ax.plot([outer_size, outer_size], [0, outer_size], 'k-', linewidth=1)
+    outer_size = 410
 
-    ax.plot([0, outer_size], [0, outer_size], 'k-', linewidth=1)
-    ax.plot([0, outer_size], [outer_size, 0], 'k-', linewidth=1)
+    square = plt.Rectangle((5, 5), 410, 410, edgecolor='black', facecolor='black', linewidth=3)
+    ax.add_patch(square)
 
-    ax.plot([0, mid], [mid, outer_size], 'k-', linewidth=1)
-    ax.plot([mid, outer_size], [outer_size, mid], 'k-', linewidth=1)
-    ax.plot([outer_size, mid], [mid, 0], 'k-', linewidth=1)
-    ax.plot([mid, 0], [0, mid], 'k-', linewidth=1)
+    polygons = {
+        "tanbhav": [(210, 10), (110, 110), (210, 210), (310, 110)],
+        "dhanbhav": [(10, 10), (210, 10), (110, 110)],
+        "anujbhav": [(10, 10), (10, 210), (110, 110)],
+        "maatabhav": [(110, 110), (10, 210), (110, 310), (210, 210)],
+        "santanbhav": [(10, 210), (110, 310), (10, 410)],
+        "rogbhav": [(210, 410), (110, 310), (10, 410)],
+        "dampathyabhav": [(210, 410), (110, 310), (210, 210), (310, 310)],
+        "aayubhav": [(210, 410), (310, 310), (410, 410)],
+        "bhagyabhav": [(310, 310), (410, 410), (410, 210)],
+        "karmabhav": [(310, 310), (410, 210), (310, 110), (210, 210)],
+        "laabbhav": [(410, 210), (310, 110), (410, 10)],
+        "karchbhav": [(310, 110), (410, 10), (210, 10)],
+    }
 
-    def get_position(degree):
-        angle = np.radians(degree)
-        x = mid + (outer_size / 2 - 0.2) * np.cos(angle)
-        y = mid + (outer_size / 2 - 0.2) * np.sin(angle)
-        return x, y
+    for points in polygons.values():
+        polygon = plt.Polygon(points, edgecolor='black', facecolor='white')
+        ax.add_patch(polygon)
+
+    zodiac_coords = [
+        {"x": 195, "y": 240},
+        {"x": 97, "y": 335},
+        {"x": 75, "y": 316},
+        {"x": 170, "y": 218},
+        {"x": 70, "y": 118},
+        {"x": 97, "y": 95},
+        {"x": 193, "y": 195},
+        {"x": 298, "y": 98},
+        {"x": 318, "y": 118},
+        {"x": 220, "y": 218},
+        {"x": 320, "y": 318},
+        {"x": 296, "y": 337}
+    ]
 
     zodiac_signs = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"]
 
@@ -240,15 +207,13 @@ async def draw_south_indian_chart(ascendant_sign):
 
     for i in range(12):
         sign_index = (ascendant_index + i) % 12
-        degree = 90 + i * 30
-        if degree >= 360:
-            degree -= 360
-        x, y = get_position(degree)
+        sign = zodiac_signs[sign_index]
+        x = zodiac_coords[i]["x"] + 15
+        y = zodiac_coords[i]["y"] - 7
+        ax.text(x, y, sign, fontsize=18, ha='center', va='center', color='black', fontweight='bold')
 
-        ax.text(x, y, zodiac_signs[sign_index], fontsize=11, ha='center', va='center', color='black', fontweight='bold')
-
-    ax.set_xlim(-0.5, outer_size + 0.5)
-    ax.set_ylim(-0.5, outer_size + 0.5)
+    ax.set_xlim(0, outer_size + 10)
+    ax.set_ylim(0, outer_size + 10)
     ax.set_aspect('equal')
     ax.axis('off')
 
