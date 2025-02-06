@@ -159,7 +159,7 @@ async def calculate_asc(birth_date, birth_time, location):
     return positions, zodiac_signs
 
 
-async def draw_north_indian_chart(ascendant_sign):
+async def draw_north_indian_chart(ascendant_sign, planet_positions):
     fig, ax = plt.subplots(figsize=(8, 8))
 
     outer_size = 410
@@ -201,16 +201,119 @@ async def draw_north_indian_chart(ascendant_sign):
         {"x": 296, "y": 337}
     ]
 
-    zodiac_signs = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"]
+    zodiac_signs_list = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"]
 
-    ascendant_index = zodiac_signs.index(ascendant_sign)
+    ascendant_index = zodiac_signs_list.index(ascendant_sign)
+
+    # Planet positions for each house
+    planet_positions_by_house = [
+        # Tan Bhav Planets positions
+        [
+            {"y": 120, "x": 195}, {"y": 80, "x": 205}, {"y": 118, "x": 235},
+            {"y": 80, "x": 245}, {"y": 40, "x": 215}, {"y": 65, "x": 175},
+            {"y": 110, "x": 155}, {"y": 102, "x": 273}
+        ],
+        # Dhan Bhav Planets positions
+        [
+            {"x": 105, "y": 41}, {"y": 20, "x": 140}, {"y": 19, "x": 80},
+            {"y": 55, "x": 133}, {"y": 55, "x": 83}, {"y": 21, "x": 50},
+            {"y": 21, "x": 170}, {"y": 24, "x": 115}
+        ],
+        # Anuj Bhav Planets positions
+        [
+            {"x": 50, "y": 105}, {"x": 25, "y": 140}, {"x": 22, "y": 80},
+            {"x": 55, "y": 130}, {"x": 60, "y": 85}, {"x": 23, "y": 50},
+            {"x": 23, "y": 170}, {"x": 26, "y": 115}
+        ],
+        # Maata Bhav Planets positions
+        [
+            {"x": 130, "y": 195}, {"x": 90, "y": 205}, {"x": 128, "y": 225},
+            {"x": 90, "y": 235}, {"x": 50, "y": 205}, {"x": 75, "y": 175},
+            {"x": 120, "y": 155}, {"x": 112, "y": 273}
+        ],
+        # Santan Bhav Planets positions
+        [
+            {"x": 50, "y": 305}, {"x": 25, "y": 340}, {"x": 22, "y": 280},
+            {"x": 55, "y": 333}, {"x": 55, "y": 283}, {"x": 23, "y": 250},
+            {"x": 23, "y": 370}, {"x": 26, "y": 315}
+        ],
+        # Rog Bhav Planets positions
+        [
+            {"x": 107, "y": 355}, {"x": 70, "y": 370}, {"x": 138, "y": 393},
+            {"x": 110, "y": 380}, {"x": 90, "y": 398}, {"x": 50, "y": 395},
+            {"x": 170, "y": 397}, {"x": 137, "y": 365}
+        ],
+        # Dampathya Bhav Planets positions
+        [
+            {"y": 260, "x": 187}, {"y": 310, "x": 205}, {"y": 290, "x": 230},
+            {"y": 310, "x": 240}, {"y": 360, "x": 215}, {"y": 335, "x": 175},
+            {"y": 300, "x": 160}, {"y": 310, "x": 270}
+        ],
+        # Aayu Bhav Planets positions
+        [
+            {"x": 310, "y": 360}, {"x": 270, "y": 375}, {"x": 338, "y": 398},
+            {"x": 310, "y": 385}, {"x": 290, "y": 403}, {"x": 250, "y": 400},
+            {"x": 372, "y": 402}, {"x": 340, "y": 370}
+        ],
+        # Bhagya Bhav Planets positions
+        [
+            {"x": 370, "y": 315}, {"x": 360, "y": 345}, {"x": 360, "y": 290},
+            {"x": 390, "y": 278}, {"x": 390, "y": 340}, {"x": 379, "y": 365},
+            {"x": 393, "y": 255}, {"x": 395, "y": 387}
+        ],
+        # Karma Bhav Planets positions
+        [
+            {"x": 280, "y": 205}, {"x": 330, "y": 210}, {"x": 292, "y": 240},
+            {"x": 330, "y": 250}, {"x": 370, "y": 220}, {"x": 345, "y": 185},
+            {"x": 300, "y": 165}, {"x": 308, "y": 283}
+        ],
+        # Laab Bhav Planets positions
+        [
+            {"x": 370, "y": 115}, {"x": 360, "y": 145}, {"x": 360, "y": 90},
+            {"x": 390, "y": 78}, {"x": 390, "y": 140}, {"x": 379, "y": 165},
+            {"x": 393, "y": 55}, {"x": 395, "y": 187}
+        ],
+        # Karch Bhav Planets positions
+        [
+            {"x": 306, "y": 61}, {"y": 40, "x": 340}, {"y": 37, "x": 280},
+            {"y": 75, "x": 333}, {"y": 75, "x": 283}, {"y": 36, "x": 250},
+            {"y": 36, "x": 370}, {"y": 41, "x": 315}
+        ]
+    ]
+
+    # Dictionary to keep track of how many planets are in each house
+    house_planet_count = [0] * 12
+    vertical_spacing = 20  # Space between planets in the same house
 
     for i in range(12):
         sign_index = (ascendant_index + i) % 12
-        sign = zodiac_signs[sign_index]
+        sign = zodiac_signs_list[sign_index]
         x = zodiac_coords[i]["x"] + 15
         y = zodiac_coords[i]["y"] - 7
-        ax.text(x, y, sign, fontsize=18, ha='center', va='center', color='black', fontweight='bold')
+        ax.text(x, y, sign, fontsize=18, ha='center', va='center', color='black')
+
+    # Add planets to the chart based on predefined positions
+    for planet, position in planet_positions:
+        # Determine which house the planet is in
+        house_index = int(position // 30)
+        house_index = (house_index - ascendant_index) % 12
+
+        # Get the predefined coordinates for the planet in the respective house
+        coords = planet_positions_by_house[house_index]
+
+        # Calculate the index for the planet in the list of coordinates
+        planet_index = house_planet_count[house_index]  # Count existing planets in the house
+        house_planet_count[house_index] += 1  # Increment the count for that house
+
+        # Use adjusted coordinates to avoid overlap
+        if planet_index < len(coords):
+            x = coords[planet_index]["x"]
+            # Calculate the vertical position based on the number of planets in the house
+            total_planets = house_planet_count[house_index]
+            center_offset = (total_planets - 1) * vertical_spacing / 2
+            y = outer_size - coords[planet_index]["y"] - (vertical_spacing * planet_index) + center_offset
+
+            ax.text(x, y, planet, fontsize=18, ha='center', va='center', color='black', fontweight='bold')
 
     ax.set_xlim(0, outer_size + 10)
     ax.set_ylim(0, outer_size + 10)
