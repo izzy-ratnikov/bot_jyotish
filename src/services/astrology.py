@@ -326,3 +326,28 @@ async def draw_north_indian_chart(ascendant_sign, planet_positions):
     buf.seek(0)
 
     return buf
+
+
+async def get_house_info(ascendant_sign, planet_positions):
+    zodiac_signs_list = ["♈", "♉", "♊", "♋", "♌", "♍", "♎", "♏", "♐", "♑", "♒", "♓"]
+    ascendant_index = zodiac_signs_list.index(ascendant_sign)
+
+    house_info = []
+
+    for i in range(12):
+
+        sign_index = (ascendant_index + i) % 12
+        sign = zodiac_signs_list[sign_index]
+
+        planets_in_house = []
+
+        for planet, position in planet_positions:
+            house_index = int(position // 30)
+            house_index = (house_index - ascendant_index) % 12
+            if house_index == i:
+                planets_in_house.append(planet)
+
+        house_str = f"{i + 1}-й\t{sign}\t{', '.join(planets_in_house)}"
+        house_info.append(house_str)
+
+    return house_info

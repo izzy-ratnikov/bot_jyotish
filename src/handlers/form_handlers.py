@@ -8,7 +8,7 @@ from aiogram.fsm.state import State, StatesGroup
 from sqlalchemy.exc import SQLAlchemyError
 
 from src.database.models.models import Session, UserData
-from src.services.astrology import calculate_planet_positions, draw_north_indian_chart, calculate_asc
+from src.services.astrology import calculate_planet_positions, draw_north_indian_chart, calculate_asc, get_house_info
 from src.utils.keyboards import start_keyboard, retry_keyboard
 
 router = Router()
@@ -127,8 +127,16 @@ async def process_location(message: types.Message, state: FSMContext):
     if not asc_sign_number:
         await message.answer("Ошибка: Не удалось определить номер знака зодиака для асцендента.")
         return
-    chart_image = await draw_north_indian_chart(asc_sign_number, planets_positions)
 
+    house_info = await get_house_info(asc_sign, planets_positions)
+
+    house_info_text = "Дома в карте:\n"
+    for info in house_info:
+        house_info_text += info + "\n"
+
+    await message.answer(house_info_text)
+
+    chart_image = await draw_north_indian_chart(asc_sign_number, planets_positions)
     input_file = BufferedInputFile(chart_image.read(), filename="chart.png")
     await message.answer_photo(photo=input_file, caption="Ваш South Indian Chart.")
 
