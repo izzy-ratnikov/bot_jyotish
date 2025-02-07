@@ -284,6 +284,7 @@ async def draw_north_indian_chart(ascendant_sign, planet_positions):
     # Dictionary to keep track of how many planets are in each house
     house_planet_count = [0] * 12
     vertical_spacing = 20  # Space between planets in the same house
+    x_offset = 10  # Смещение планет вправо
 
     for i in range(12):
         sign_index = (ascendant_index + i) % 12
@@ -305,15 +306,16 @@ async def draw_north_indian_chart(ascendant_sign, planet_positions):
         planet_index = house_planet_count[house_index]  # Count existing planets in the house
         house_planet_count[house_index] += 1  # Increment the count for that house
 
-        # Use adjusted coordinates to avoid overlap
+        # Use fixed coordinates if available, otherwise use dynamic positioning
         if planet_index < len(coords):
-            x = coords[planet_index]["x"]
-            # Calculate the vertical position based on the number of planets in the house
-            total_planets = house_planet_count[house_index]
-            center_offset = (total_planets - 1) * vertical_spacing / 2
-            y = outer_size - coords[planet_index]["y"] - (vertical_spacing * planet_index) + center_offset
+            x = coords[planet_index]["x"] + x_offset  # Добавляем смещение вправо
+            y = outer_size - coords[planet_index]["y"]
+        else:
+            # Dynamic positioning for additional planets
+            x = zodiac_coords[house_index]["x"] + 15 + x_offset  # Добавляем смещение вправо
+            y = zodiac_coords[house_index]["y"] - 7 - (planet_index - len(coords)) * vertical_spacing
 
-            ax.text(x, y, planet, fontsize=18, ha='center', va='center', color='black', fontweight='bold')
+        ax.text(x, y, planet, fontsize=18, ha='center', va='center', color='black', fontweight='bold')
 
     ax.set_xlim(0, outer_size + 10)
     ax.set_ylim(0, outer_size + 10)
