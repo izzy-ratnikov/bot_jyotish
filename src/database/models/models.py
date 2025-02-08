@@ -15,10 +15,8 @@ class UserData(Base):
     birth_time = Column(Time, nullable=False)
 
 
-# Параметры подключения для PostgreSQL
 DATABASE_URL = "postgresql://jyotish:P6SSw0RdJyot1_sh@109.205.180.137:5432/jyotish"
 
-# Создаем подключение
 engine = create_engine(DATABASE_URL)
 Base.metadata.create_all(engine)
 

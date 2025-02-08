@@ -9,6 +9,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from src.database.models.models import Session, UserData
 from src.services.astrology import calculate_planet_positions, draw_north_indian_chart, calculate_asc, get_house_info
+from src.utils.chart_data import zodiac_to_number
 from src.utils.keyboards import start_keyboard, retry_keyboard
 
 router = Router()
@@ -99,20 +100,6 @@ async def process_location(message: types.Message, state: FSMContext):
     finally:
         session.close()
 
-    zodiac_to_number = {
-        "♈": "1",
-        "♉": "2",
-        "♊": "3",
-        "♋": "4",
-        "♌": "5",
-        "♍": "6",
-        "♎": "7",
-        "♏": "8",
-        "♐": "9",
-        "♑": "10",
-        "♒": "11",
-        "♓": "12"
-    }
     planets_positions, zodiac_signs = await calculate_planet_positions(birth_date, birth_time, location)
     asc_positions, asc_zodiac_signs = await calculate_asc(birth_date, birth_time, location)
 
