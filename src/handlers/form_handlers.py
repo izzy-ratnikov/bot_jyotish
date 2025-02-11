@@ -69,11 +69,6 @@ async def process_birth_time(message: types.Message, state: FSMContext):
     await state.set_state(Form.waiting_for_location)
 
 
-# async def send_long_message(message: types.Message, text: str, max_length: int = 4096):
-#     for part in [text[i:i + max_length] for i in range(0, len(text), max_length)]:
-#         await message.answer(part)
-
-
 @router.message(Form.waiting_for_location)
 async def process_location(message: types.Message, state: FSMContext):
     location = message.text.strip()
