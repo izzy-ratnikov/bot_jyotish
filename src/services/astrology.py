@@ -1,6 +1,10 @@
 import matplotlib.pyplot as plt
 import swisseph as swe
 import io
+
+from openai import OpenAI
+
+from src.dispatcher.dispatcher import openai_api_key
 from src.utils.chart_data import planet_positions_by_house, zodiac_signs_list, zodiac_coords, polygons, planets, \
     zodiac_names, get_basic_astro_data, add_position_data
 
@@ -135,3 +139,20 @@ async def get_house_info(ascendant_sign, planet_positions):
         house_info.append(house_str)
 
     return house_info
+
+
+async def chat_gpt(house_info):
+    client = OpenAI(api_key=openai_api_key)
+
+    prompt = f"""
+    Ты астролог высокого уровня джйотиш, который отвечает на вопросы максимально подробно и максимально корректно.
+    Расшифруй натальную карту на основе следующих данных:
+    {house_info}
+    """
+
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[{"role": "assistant", "content": prompt}],
+        stream=False,
+    )
+    return response.choices[0].message.content

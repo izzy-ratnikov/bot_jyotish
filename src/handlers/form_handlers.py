@@ -8,9 +8,11 @@ from aiogram.fsm.state import State, StatesGroup
 from sqlalchemy.exc import SQLAlchemyError
 
 from src.database.models.models import Session, UserData
-from src.services.astrology import calculate_planet_positions, draw_north_indian_chart, calculate_asc, get_house_info
+from src.services.astrology import calculate_planet_positions, draw_north_indian_chart, calculate_asc, get_house_info, \
+    chat_gpt
 from src.utils.chart_data import zodiac_to_number
 from src.utils.keyboards import start_keyboard, retry_keyboard
+from src.utils.message import send_long_message
 
 router = Router()
 
@@ -65,6 +67,11 @@ async def process_birth_time(message: types.Message, state: FSMContext):
     await state.update_data(birth_time=birth_time)
     await message.answer("Теперь введи свою локацию (город или координаты).")
     await state.set_state(Form.waiting_for_location)
+
+
+# async def send_long_message(message: types.Message, text: str, max_length: int = 4096):
+#     for part in [text[i:i + max_length] for i in range(0, len(text), max_length)]:
+#         await message.answer(part)
 
 
 @router.message(Form.waiting_for_location)
@@ -133,6 +140,15 @@ async def process_location(message: types.Message, state: FSMContext):
     ])
 
     await message.answer(f"Знаки зодиака с градусами:\n{zodiac_info}\n{ascendant_string}")
+
+    processing_message = await message.answer("Обрабатываем результаты расчета...")
+
+    interpretation = await chat_gpt(house_info_text)
+
+    await processing_message.delete()
+
+    await send_long_message(message, f"Расшифровка натальной карты:\n{interpretation}")
+
     await message.answer(
         "Если хотите рассчитать новую карту, нажмите на кнопку ниже.",
         reply_markup=retry_keyboard
