@@ -2,9 +2,6 @@ import matplotlib.pyplot as plt
 import swisseph as swe
 import io
 
-from openai import OpenAI
-
-from src.dispatcher.dispatcher import openai_api_key
 from src.utils.chart_data import planet_positions_by_house, zodiac_signs_list, zodiac_coords, polygons, planets, \
     zodiac_names, get_basic_astro_data, add_position_data
 
@@ -59,8 +56,64 @@ async def calculate_asc(birth_date, birth_time, location):
     return positions, zodiac_signs
 
 
+# async def draw_north_indian_chart(ascendant_sign, planet_positions):
+#     fig, ax = plt.subplots(figsize=(8, 8))
+#
+#     outer_size = 410
+#
+#     square = plt.Rectangle((5, 5), 410, 410, edgecolor='black', facecolor='black', linewidth=3)
+#     ax.add_patch(square)
+#
+#     for points in polygons.values():
+#         polygon = plt.Polygon(points, edgecolor='black', facecolor='white')
+#         ax.add_patch(polygon)
+#
+#     ascendant_index = zodiac_signs_list.index(ascendant_sign)
+#
+#     house_planet_count = [0] * 12
+#     vertical_spacing = 20
+#     x_offset = 10
+#
+#     for i in range(12):
+#         sign_index = (ascendant_index + i) % 12
+#         sign = zodiac_signs_list[sign_index]
+#         x = zodiac_coords[i]["x"] + 15
+#         y = zodiac_coords[i]["y"] - 7
+#         ax.text(x, y, sign, fontsize=10, ha='center', va='center', color='black')
+#
+#     for planet, position in planet_positions:
+#
+#         house_index = int(position // 30)
+#         house_index = (house_index - ascendant_index) % 12
+#
+#         coords = planet_positions_by_house[house_index]
+#
+#         planet_index = house_planet_count[house_index]
+#         house_planet_count[house_index] += 1
+#
+#         if planet_index < len(coords):
+#             x = coords[planet_index]["x"] + x_offset
+#             y = outer_size - coords[planet_index]["y"]
+#         else:
+#
+#             x = zodiac_coords[house_index]["x"] + 15 + x_offset
+#             y = zodiac_coords[house_index]["y"] - 7 - (planet_index - len(coords)) * vertical_spacing
+#
+#         ax.text(x, y, planet, fontsize=16, ha='center', va='center', color='black', fontweight='bold')
+#
+#     ax.set_xlim(0, outer_size + 10)
+#     ax.set_ylim(0, outer_size + 10)
+#     ax.set_aspect('equal')
+#     ax.axis('off')
+#
+#     buf = io.BytesIO()
+#     plt.savefig(buf, format='png', bbox_inches='tight', pad_inches=0.1)
+#     plt.close(fig)
+#     buf.seek(0)
+#
+#     return buf
 async def draw_north_indian_chart(ascendant_sign, planet_positions):
-    fig, ax = plt.subplots(figsize=(8, 8))
+    fig, ax = plt.subplots(figsize=(9, 9))
 
     outer_size = 410
 
@@ -76,13 +129,14 @@ async def draw_north_indian_chart(ascendant_sign, planet_positions):
     house_planet_count = [0] * 12
     vertical_spacing = 20
     x_offset = 10
+    y_offset = 11  # Смещение для поднятия планет выше
 
     for i in range(12):
         sign_index = (ascendant_index + i) % 12
         sign = zodiac_signs_list[sign_index]
         x = zodiac_coords[i]["x"] + 15
         y = zodiac_coords[i]["y"] - 7
-        ax.text(x, y, sign, fontsize=18, ha='center', va='center', color='black')
+        ax.text(x, y, sign, fontsize=12, ha='center', va='center', color='black')
 
     for planet, position in planet_positions:
 
@@ -96,13 +150,13 @@ async def draw_north_indian_chart(ascendant_sign, planet_positions):
 
         if planet_index < len(coords):
             x = coords[planet_index]["x"] + x_offset
-            y = outer_size - coords[planet_index]["y"]
+            y = outer_size - coords[planet_index]["y"] + y_offset  # Добавляем y_offset
         else:
 
             x = zodiac_coords[house_index]["x"] + 15 + x_offset
-            y = zodiac_coords[house_index]["y"] - 7 - (planet_index - len(coords)) * vertical_spacing
+            y = zodiac_coords[house_index]["y"] - 7 - (planet_index - len(coords)) * vertical_spacing + y_offset  # Добавляем y_offset
 
-        ax.text(x, y, planet, fontsize=18, ha='center', va='center', color='black', fontweight='bold')
+        ax.text(x, y, planet, fontsize=16, ha='center', va='center', color='black', fontweight='bold')
 
     ax.set_xlim(0, outer_size + 10)
     ax.set_ylim(0, outer_size + 10)
@@ -115,7 +169,6 @@ async def draw_north_indian_chart(ascendant_sign, planet_positions):
     buf.seek(0)
 
     return buf
-
 
 async def get_house_info(ascendant_sign, planet_positions):
     ascendant_index = zodiac_names.index(ascendant_sign)
@@ -139,20 +192,3 @@ async def get_house_info(ascendant_sign, planet_positions):
         house_info.append(house_str)
 
     return house_info
-
-
-async def chat_gpt(house_info):
-    client = OpenAI(api_key=openai_api_key)
-
-    prompt = f"""
-    Ты астролог высокого уровня джйотиш, который отвечает на вопросы максимально подробно и максимально корректно.
-    Расшифруй натальную карту на основе следующих данных:
-    {house_info}
-    """
-
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[{"role": "assistant", "content": prompt}],
-        stream=False,
-    )
-    return response.choices[0].message.content

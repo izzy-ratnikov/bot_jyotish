@@ -8,8 +8,8 @@ from aiogram.fsm.state import State, StatesGroup
 from sqlalchemy.exc import SQLAlchemyError
 
 from src.database.models.models import Session, UserData
-from src.services.astrology import calculate_planet_positions, draw_north_indian_chart, calculate_asc, get_house_info, \
-    chat_gpt
+from src.services.astrology import calculate_planet_positions, draw_north_indian_chart, calculate_asc, get_house_info
+from src.services.openai import chat_gpt
 from src.utils.chart_data import zodiac_to_number
 from src.utils.keyboards import start_keyboard, retry_keyboard
 from src.utils.message import send_long_message
@@ -35,7 +35,7 @@ async def start_handler(message: types.Message, state: FSMContext):
 @router.message(lambda message: message.text == "Рассчитать карту Джйотиш")
 async def get_user_data(message: types.Message, state: FSMContext):
     await message.answer(
-        "Пожалуйста, введи свой день рождения (в формате ДД-ММ-ГГГГ).",
+        "Пожалуйста, введи свой день рождения (в формате ДД.ММ.ГГГГ).",
         reply_markup=types.ReplyKeyboardRemove()
     )
     await state.set_state(Form.waiting_for_birth_date)
@@ -44,10 +44,11 @@ async def get_user_data(message: types.Message, state: FSMContext):
 @router.message(Form.waiting_for_birth_date)
 async def process_birth_date(message: types.Message, state: FSMContext):
     birth_date = message.text.strip()
+    birth_date = birth_date.replace('.', '-')
     try:
         datetime.strptime(birth_date, "%d-%m-%Y")
     except ValueError:
-        await message.answer("Неверный формат даты. Пожалуйста, введите дату в формате ДД-ММ-ГГГГ.")
+        await message.answer("Неверный формат даты. Пожалуйста, введите дату в формате ДД-ММ-ГГГГ или ДД.ММ.ГГГГ")
         return
 
     await state.update_data(birth_date=birth_date)
