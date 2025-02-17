@@ -58,6 +58,14 @@ def add_position_data(symbol, longitude, positions, zodiac_signs):
     zodiac_signs[symbol] = (zodiac_sign, degree, minutes, seconds)
 
 
+def position_data_with_retrograde(symbol, longitude, positions, zodiac_signs, is_retrograde=False):
+    zodiac_sign, degree, minutes, seconds = calculate_zodiac_position(longitude)
+    if is_retrograde:
+        symbol = f"({symbol})"
+    positions.append((symbol, longitude))
+    zodiac_signs[symbol] = (zodiac_sign, degree, minutes, seconds)
+
+
 zodiac_to_number = {
     "♈": "1",
     "♉": "2",
