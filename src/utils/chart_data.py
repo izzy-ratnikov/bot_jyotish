@@ -60,12 +60,44 @@ def add_position_data(symbol, longitude, positions, zodiac_signs):
 
 def position_data_with_retrograde(symbol, longitude, positions, zodiac_signs, is_retrograde=False):
     zodiac_sign, degree, minutes, seconds = calculate_zodiac_position(longitude)
+
+    zodiac_name = zodiac_symbol_to_name.get(zodiac_sign, "")
+    is_mula_trikona = zodiac_name == mula_trikona_signs.get(symbol, "")
+
+    if is_mula_trikona:
+        symbol = f"{symbol[0]}\u035F{symbol[1]}"
+
     if is_retrograde:
         symbol = f"({symbol})"
+
     positions.append((symbol, longitude))
     zodiac_signs[symbol] = (zodiac_sign, degree, minutes, seconds)
 
 
+mula_trikona_signs = {
+    "Su": "Leo",
+    "Mo": "Taurus",
+    "Ma": "Aries",
+    "Me": "Virgo",
+    "Ju": "Sagittarius",
+    "Ve": "Libra",
+    "Sa": "Aquarius",
+}
+
+zodiac_symbol_to_name = {
+    "♈": "Aries",
+    "♉": "Taurus",
+    "♊": "Gemini",
+    "♋": "Cancer",
+    "♌": "Leo",
+    "♍": "Virgo",
+    "♎": "Libra",
+    "♏": "Scorpio",
+    "♐": "Sagittarius",
+    "♑": "Capricorn",
+    "♒": "Aquarius",
+    "♓": "Pisces",
+}
 zodiac_to_number = {
     "♈": "1",
     "♉": "2",
