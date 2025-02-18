@@ -25,11 +25,9 @@ async def calculate_planet_positions(birth_date, birth_time, location):
 
         if symbol == "Ra":
             rahu_position = longitude
-            rahu_is_retrograde = is_retrograde
             continue
         elif symbol == "Ke":
             ketu_position = longitude
-            ketu_is_retrograde = is_retrograde
             continue
 
         position_data_with_retrograde(symbol, longitude, positions, zodiac_signs, is_retrograde)
@@ -37,8 +35,8 @@ async def calculate_planet_positions(birth_date, birth_time, location):
     if rahu_position is not None and ketu_position is not None:
         ketu_position = (rahu_position + 180) % 360
 
-        position_data_with_retrograde("Ra", rahu_position, positions, zodiac_signs, rahu_is_retrograde)
-        position_data_with_retrograde("Ke", ketu_position, positions, zodiac_signs, ketu_is_retrograde)
+        position_data_with_retrograde("Ra", rahu_position, positions, zodiac_signs, True)
+        position_data_with_retrograde("Ke", ketu_position, positions, zodiac_signs, True)
     return positions, zodiac_signs
 
 
