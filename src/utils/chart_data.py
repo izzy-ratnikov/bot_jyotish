@@ -64,11 +64,18 @@ def position_data_with_retrograde(symbol, longitude, positions, zodiac_signs, is
     zodiac_name = zodiac_symbol_to_name.get(zodiac_sign, "")
     is_mula_trikona = zodiac_name == mula_trikona_signs.get(symbol, "")
 
-    if is_mula_trikona:
-        symbol = f"{symbol[0]}\u035F{symbol[1]}"
-
+    is_exaltation = zodiac_name == exaltation_signs.get(symbol, "")
+    is_debilitation = zodiac_name == debilitation_signs.get(symbol, "")
     if is_retrograde:
         symbol = f"({symbol})"
+
+    if is_exaltation:
+        symbol = f"{symbol}↑"
+    elif is_debilitation:
+        symbol = f"{symbol}↓"
+
+    if is_mula_trikona:
+        symbol = f"{symbol[0]}\u035F{symbol[1]}"
 
     positions.append((symbol, longitude))
     zodiac_signs[symbol] = (zodiac_sign, degree, minutes, seconds)
@@ -233,3 +240,26 @@ planets = [
     (swe.TRUE_NODE, "Ra"),
     (swe.TRUE_NODE, "Ke")
 ]
+
+exaltation_signs = {
+    "Su": "Aries",
+    "Mo": "Taurus",
+    "Ma": "Capricorn",
+    "Me": "Virgo",
+    "Ju": "Cancer",
+    "Ve": "Pisces",
+    "Sa": "Libra",
+    "Ra": "Taurus",
+    "Ke": "Scorpio"
+}
+debilitation_signs = {
+    "Su": "Libra",
+    "Mo": "Scorpio",
+    "Ma": "Cancer",
+    "Me": "Pisces",
+    "Ju": "Capricorn",
+    "Ve": "Virgo",
+    "Sa": "Aries",
+    "Ra": "Scorpio",
+    "Ke": "Taurus"
+}
