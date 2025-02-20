@@ -83,9 +83,7 @@ def position_data_with_retrograde(symbol, longitude, positions, zodiac_signs, is
 
 mula_trikona_signs = {
     "Su": "Leo",
-    "Mo": "Taurus",
     "Ma": "Aries",
-    "Me": "Virgo",
     "Ju": "Sagittarius",
     "Ve": "Libra",
     "Sa": "Aquarius",
