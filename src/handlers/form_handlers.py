@@ -1,11 +1,11 @@
 from datetime import datetime
 
-import requests
-from aiogram import types, Router, F
+from aiogram import types, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.filters import Command
-from aiogram.types import BufferedInputFile, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import BufferedInputFile
 from aiogram.fsm.state import State, StatesGroup
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 from sqlalchemy.exc import SQLAlchemyError
 
 from src.database.models.models import Session, UserData
@@ -13,6 +13,7 @@ from src.services.astrology import calculate_planet_positions, draw_north_indian
 from src.services.openai import chat_gpt
 from src.utils.chart_data import zodiac_to_number
 from src.utils.keyboards import start_keyboard, retry_keyboard
+from src.utils.location import CITIES
 from src.utils.message import send_long_message
 
 router = Router()
@@ -74,27 +75,71 @@ async def process_birth_time(message: types.Message, state: FSMContext):
 
 @router.message(Form.waiting_for_location)
 async def process_location(message: types.Message, state: FSMContext):
-    location = message.text.strip()
-    if len(location) < 2:
+    user_input = message.text.strip()
+    if len(user_input) < 2:
         await message.answer("Не удалось распознать локацию. Пожалуйста, введите координаты или название города.")
         return
 
-    await state.update_data(location=location)
+    # Фильтрация городов по введенным буквам
+    filtered_cities = [city for city in CITIES if city.lower().startswith(user_input.lower())]
+
+    if not filtered_cities:
+        await message.answer("Город не найден. Пожалуйста, попробуйте еще раз.")
+        return
+
+    # Создание InlineKeyboard с предложенными городами
+    builder = InlineKeyboardBuilder()
+    for city in filtered_cities:
+        builder.add(types.InlineKeyboardButton(text=city, callback_data=f"city_{city}"))
+
+    await message.answer("Выберите город из списка:", reply_markup=builder.as_markup())
+
+
+@router.callback_query(lambda c: c.data.startswith('city_'))
+async def process_city_selection(callback_query: types.CallbackQuery, state: FSMContext):
+    city = callback_query.data.split('_')[1]
+    await state.update_data(location=city)
     user_data = await state.get_data()
     birth_date = user_data.get('birth_date')
     birth_time = user_data.get('birth_time')
 
     if not birth_date or not birth_time:
-        await message.answer("Не указаны дата или время рождения. Пожалуйста, попробуйте снова.")
+        await callback_query.message.answer("Не указаны дата или время рождения. Пожалуйста, попробуйте снова.")
         return
 
     try:
-        await save_user_data(message, user_data)
-        await calculate_and_send_chart(message, user_data)
+        await save_user_data(callback_query.message, user_data)
+        await calculate_and_send_chart(callback_query.message, user_data)
         await state.clear()
     except ValueError as e:
-        await message.answer(
+        await callback_query.message.answer(
             "Локация введена некорректно. Пожалуйста, введите корректные координаты или название города.")
+
+
+#
+# @router.message(Form.waiting_for_location)
+# async def process_location(message: types.Message, state: FSMContext):
+#     location = message.text.strip()
+#     if len(location) < 2:
+#         await message.answer("Не удалось распознать локацию. Пожалуйста, введите координаты или название города.")
+#         return
+#
+#     await state.update_data(location=location)
+#     user_data = await state.get_data()
+#     birth_date = user_data.get('birth_date')
+#     birth_time = user_data.get('birth_time')
+#
+#     if not birth_date or not birth_time:
+#         await message.answer("Не указаны дата или время рождения. Пожалуйста, попробуйте снова.")
+#         return
+#
+#     try:
+#         await save_user_data(message, user_data)
+#         await calculate_and_send_chart(message, user_data)
+#         await state.clear()
+#     except ValueError as e:
+#         await message.answer(
+#             "Локация введена некорректно. Пожалуйста, введите корректные координаты или название города.")
 
 
 async def save_user_data(message: types.Message, user_data: dict):
