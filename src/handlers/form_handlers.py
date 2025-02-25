@@ -6,17 +6,18 @@ from aiogram.filters import Command
 from aiogram.types import BufferedInputFile
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
+from geopy.exc import GeocoderTimedOut
 from sqlalchemy.exc import SQLAlchemyError
-
+from geopy import Nominatim
 from src.database.models.models import Session, UserData
 from src.services.astrology import calculate_planet_positions, draw_north_indian_chart, calculate_asc, get_house_info
 from src.services.openai import chat_gpt
 from src.utils.chart_data import zodiac_to_number
 from src.utils.keyboards import start_keyboard, retry_keyboard
-from src.utils.location import CITIES
 from src.utils.message import send_long_message
 
 router = Router()
+geolocator = Nominatim(user_agent="jyotish_bot")
 
 
 class Form(StatesGroup):
@@ -77,69 +78,86 @@ async def process_birth_time(message: types.Message, state: FSMContext):
 async def process_location(message: types.Message, state: FSMContext):
     user_input = message.text.strip()
     if len(user_input) < 2:
-        await message.answer("Не удалось распознать локацию. Пожалуйста, введите координаты или название города.")
+        await message.answer("Не удалось распознать локацию. Пожалуйста, введите название города.")
         return
 
-    # Фильтрация городов по введенным буквам
-    filtered_cities = [city for city in CITIES if city.lower().startswith(user_input.lower())]
+    try:
+        locations = geolocator.geocode(user_input, exactly_one=False, limit=52, language="ru")
+        if not locations:
+            await message.answer("Город не найден. Пожалуйста, попробуйте еще раз.")
+            return
 
-    if not filtered_cities:
-        await message.answer("Город не найден. Пожалуйста, попробуйте еще раз.")
-        return
+        exact_match_found = False
+        for location in locations:
+            city_name = location.address.split(",")[0].strip()
+            if user_input.lower() == city_name.lower():
+                exact_match_found = True
+                break
 
-    # Создание InlineKeyboard с предложенными городами
-    builder = InlineKeyboardBuilder()
-    for city in filtered_cities:
-        builder.add(types.InlineKeyboardButton(text=city, callback_data=f"city_{city}"))
+        if not exact_match_found:
+            await message.answer("Город не найден. Пожалуйста, введите полное название города.")
+            return
 
-    await message.answer("Выберите город из списка:", reply_markup=builder.as_markup())
+        builder = InlineKeyboardBuilder()
+        for location in locations:
+
+            address_parts = location.address.split(",")
+            city_name = address_parts[0].strip()
+            country = address_parts[-1].strip()
+
+            if len(address_parts) > 2:
+                region = address_parts[2].strip()
+                if region and region != country:
+                    button_text = f"{city_name}, {region}, {country}"
+                else:
+                    button_text = f"{city_name}, {country}"
+            else:
+                button_text = f"{city_name}, {country}"
+
+            callback_data = f"city_{location.latitude}_{location.longitude}"
+            builder.add(types.InlineKeyboardButton(text=button_text, callback_data=callback_data))
+
+        builder.adjust(1)
+        await message.answer("Выберите город из списка:", reply_markup=builder.as_markup())
+
+    except GeocoderTimedOut:
+        await message.answer("Сервис геокодирования временно недоступен. Пожалуйста, попробуйте позже.")
+    except Exception as e:
+        await message.answer(f"Произошла ошибка при поиске города: {e}")
 
 
 @router.callback_query(lambda c: c.data.startswith('city_'))
 async def process_city_selection(callback_query: types.CallbackQuery, state: FSMContext):
-    city = callback_query.data.split('_')[1]
-    await state.update_data(location=city)
+    _, latitude, longitude = callback_query.data.split('_')
+    city_coords = (float(latitude), float(longitude))
+
+    try:
+        location = geolocator.reverse(city_coords, exactly_one=True, language="ru")
+        city_address = location.address
+    except Exception as e:
+        await callback_query.message.answer(f"Не удалось получить адрес города: {e}")
+        return
+
+    await state.update_data(location=city_address)
+    await confirm_and_proceed(callback_query.message, state)
+
+
+async def confirm_and_proceed(message: types.Message, state: FSMContext):
     user_data = await state.get_data()
     birth_date = user_data.get('birth_date')
     birth_time = user_data.get('birth_time')
 
     if not birth_date or not birth_time:
-        await callback_query.message.answer("Не указаны дата или время рождения. Пожалуйста, попробуйте снова.")
+        await message.answer("Не указаны дата или время рождения. Пожалуйста, попробуйте снова.")
         return
 
     try:
-        await save_user_data(callback_query.message, user_data)
-        await calculate_and_send_chart(callback_query.message, user_data)
+        await save_user_data(message, user_data)
+        await calculate_and_send_chart(message, user_data)
         await state.clear()
     except ValueError as e:
-        await callback_query.message.answer(
+        await message.answer(
             "Локация введена некорректно. Пожалуйста, введите корректные координаты или название города.")
-
-
-#
-# @router.message(Form.waiting_for_location)
-# async def process_location(message: types.Message, state: FSMContext):
-#     location = message.text.strip()
-#     if len(location) < 2:
-#         await message.answer("Не удалось распознать локацию. Пожалуйста, введите координаты или название города.")
-#         return
-#
-#     await state.update_data(location=location)
-#     user_data = await state.get_data()
-#     birth_date = user_data.get('birth_date')
-#     birth_time = user_data.get('birth_time')
-#
-#     if not birth_date or not birth_time:
-#         await message.answer("Не указаны дата или время рождения. Пожалуйста, попробуйте снова.")
-#         return
-#
-#     try:
-#         await save_user_data(message, user_data)
-#         await calculate_and_send_chart(message, user_data)
-#         await state.clear()
-#     except ValueError as e:
-#         await message.answer(
-#             "Локация введена некорректно. Пожалуйста, введите корректные координаты или название города.")
 
 
 async def save_user_data(message: types.Message, user_data: dict):
