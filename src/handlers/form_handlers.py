@@ -18,6 +18,7 @@ from src.utils.message import send_long_message
 
 router = Router()
 geolocator = Nominatim(user_agent="jyotish_bot")
+CITIES_PER_PAGE = 5
 
 
 class Form(StatesGroup):
@@ -82,6 +83,7 @@ async def process_location(message: types.Message, state: FSMContext):
         return
 
     try:
+
         locations = geolocator.geocode(user_input, exactly_one=False, limit=52, language="ru")
         if not locations:
             await message.answer("Город не найден. Пожалуйста, попробуйте еще раз.")
@@ -98,32 +100,82 @@ async def process_location(message: types.Message, state: FSMContext):
             await message.answer("Город не найден. Пожалуйста, введите полное название города.")
             return
 
-        builder = InlineKeyboardBuilder()
+        unique_locations = []
+        seen_cities = set()
         for location in locations:
+            city_name = location.address.split(",")[0].strip()
+            region = location.address.split(",")[2].strip() if len(location.address.split(",")) > 2 else ""
+            country = location.address.split(",")[-1].strip()
 
-            address_parts = location.address.split(",")
-            city_name = address_parts[0].strip()
-            country = address_parts[-1].strip()
+            city_id = f"{city_name}, {region}, {country}"
 
-            if len(address_parts) > 2:
-                region = address_parts[2].strip()
-                if region and region != country:
-                    button_text = f"{city_name}, {region}, {country}"
-                else:
-                    button_text = f"{city_name}, {country}"
-            else:
-                button_text = f"{city_name}, {country}"
+            if city_id not in seen_cities:
+                seen_cities.add(city_id)
+                unique_locations.append(location)
 
-            callback_data = f"city_{location.latitude}_{location.longitude}"
-            builder.add(types.InlineKeyboardButton(text=button_text, callback_data=callback_data))
+        unique_locations.sort(key=lambda loc: loc.address.split(",")[-1].strip())
 
-        builder.adjust(1)
-        await message.answer("Выберите город из списка:", reply_markup=builder.as_markup())
+        await state.update_data(all_locations=unique_locations, page=0)
+
+        await show_city_page(message, state)
 
     except GeocoderTimedOut:
         await message.answer("Сервис геокодирования временно недоступен. Пожалуйста, попробуйте позже.")
     except Exception as e:
         await message.answer(f"Произошла ошибка при поиске города: {e}")
+
+
+async def show_city_page(message: types.Message, state: FSMContext):
+    user_data = await state.get_data()
+    all_locations = user_data.get("all_locations")
+    page = user_data.get("page", 0)
+
+    start_index = page * CITIES_PER_PAGE
+    end_index = start_index + CITIES_PER_PAGE
+    current_locations = all_locations[start_index:end_index]
+
+    builder = InlineKeyboardBuilder()
+    for location in current_locations:
+
+        address_parts = location.address.split(",")
+        city_name = address_parts[0].strip()
+        country = address_parts[-1].strip()
+
+        if len(address_parts) > 2:
+            region = address_parts[2].strip()
+            if region and region != country:
+                button_text = f"{city_name}, {region}, {country}"
+            else:
+                button_text = f"{city_name}, {country}"
+        else:
+            button_text = f"{city_name}, {country}"
+
+        callback_data = f"city_{location.latitude}_{location.longitude}"
+        builder.add(types.InlineKeyboardButton(text=button_text, callback_data=callback_data))
+
+    if page > 0:
+        builder.add(types.InlineKeyboardButton(text="⬅️ Назад", callback_data="prev_page"))
+    if end_index < len(all_locations):
+        builder.add(types.InlineKeyboardButton(text="➡️ Вперед", callback_data="next_page"))
+
+    builder.adjust(1)
+    await message.answer("Выберите город из списка:", reply_markup=builder.as_markup())
+
+
+@router.callback_query(lambda c: c.data in ["prev_page", "next_page"])
+async def process_page_navigation(callback_query: types.CallbackQuery, state: FSMContext):
+    user_data = await state.get_data()
+    page = user_data.get("page", 0)
+
+    if callback_query.data == "prev_page":
+        page -= 1
+    elif callback_query.data == "next_page":
+        page += 1
+
+    await state.update_data(page=page)
+
+    await show_city_page(callback_query.message, state)
+    await callback_query.answer()
 
 
 @router.callback_query(lambda c: c.data.startswith('city_'))
