@@ -50,7 +50,7 @@ async def calculate_asc(birth_date, birth_time, location):
     positions = []
 
     house_positions = swe.houses(julian_day, latitude, longitude, b'P')
-    asc_position = house_positions[0][0] - 23.8
+    asc_position = house_positions[0][0] - 23.88
     asc_position = asc_position % 360
 
     add_position_data("Asc", asc_position, positions, zodiac_signs)
