@@ -66,25 +66,27 @@ def position_data_with_retrograde(symbol, longitude, positions, zodiac_signs, is
 
     is_exaltation = zodiac_name == exaltation_signs.get(symbol, "")
     is_debilitation = zodiac_name == debilitation_signs.get(symbol, "")
+    display_symbol = symbol
+
     if is_retrograde:
-        symbol = f"({symbol})"
+        display_symbol = f"({display_symbol})"
 
     if is_exaltation:
-        symbol = f"{symbol}↑"
+        display_symbol = f"{display_symbol}↑"
     elif is_debilitation:
-        symbol = f"{symbol}↓"
+        display_symbol = f"{display_symbol}↓"
 
     if is_mula_trikona:
-        symbol = f"{symbol[0]}\u035F{symbol[1]}"
+        display_symbol = f"{display_symbol[0]}\u035F{display_symbol[1:]}"
 
-    positions.append((symbol, longitude))
+    positions.append((display_symbol, longitude))
     zodiac_signs[symbol] = (zodiac_sign, degree, minutes, seconds)
 
 
 mula_trikona_signs = {
     "Su": "Leo",
     "Ma": "Aries",
-    "Ju": "Sagittarius",
+    "Jp": "Sagittarius",
     "Ve": "Libra",
     "Sa": "Aquarius",
 }
@@ -244,7 +246,7 @@ exaltation_signs = {
     "Mo": "Taurus",
     "Ma": "Capricorn",
     "Me": "Virgo",
-    "Ju": "Cancer",
+    "Jp": "Cancer",
     "Ve": "Pisces",
     "Sa": "Libra",
     "Ra": "Taurus",
@@ -255,7 +257,7 @@ debilitation_signs = {
     "Mo": "Scorpio",
     "Ma": "Cancer",
     "Me": "Pisces",
-    "Ju": "Capricorn",
+    "Jp": "Capricorn",
     "Ve": "Virgo",
     "Sa": "Aries",
     "Ra": "Scorpio",
