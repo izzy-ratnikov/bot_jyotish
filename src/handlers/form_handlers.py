@@ -216,7 +216,8 @@ async def save_user_data(message: types.Message, user_data: dict):
     session = Session()
     try:
         user_data_entry = UserData(
-            telegram_id=message.from_user.id,
+            telegram_id=message.chat.id,
+            username=message.chat.username,
             location=user_data['location'],
             birth_date=datetime.strptime(user_data['birth_date'], "%d-%m-%Y").date(),
             birth_time=datetime.strptime(user_data['birth_time'], "%H:%M:%S").time(),

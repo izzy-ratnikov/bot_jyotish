@@ -10,6 +10,7 @@ class UserData(Base):
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
     telegram_id = Column(Integer, nullable=False)
+    username = Column(String, nullable=True)
     location = Column(String, nullable=False)
     birth_date = Column(Date, nullable=False)
     birth_time = Column(Time, nullable=False)
