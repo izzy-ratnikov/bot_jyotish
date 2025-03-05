@@ -13,7 +13,7 @@ from src.database.models.models import Session, UserData
 from src.services.astrology import calculate_planet_positions, draw_north_indian_chart, calculate_asc, get_house_info
 from src.services.openai import chat_gpt
 from src.utils.chart_data import zodiac_to_number
-from src.utils.keyboards import start_keyboard, retry_keyboard
+from src.utils.keyboards import start_keyboard, retry_keyboard, replace_yo_with_e
 from src.utils.message import send_long_message
 
 router = Router()
@@ -83,7 +83,6 @@ async def process_location(message: types.Message, state: FSMContext):
         return
 
     try:
-
         locations = geolocator.geocode(user_input, exactly_one=False, limit=52, language="ru")
         if not locations:
             await message.answer("Город не найден. Пожалуйста, попробуйте еще раз.")
@@ -92,7 +91,7 @@ async def process_location(message: types.Message, state: FSMContext):
         exact_match_found = False
         for location in locations:
             city_name = location.address.split(",")[0].strip()
-            if user_input.lower() == city_name.lower():
+            if replace_yo_with_e(user_input.lower()) == replace_yo_with_e(city_name.lower()):
                 exact_match_found = True
                 break
 

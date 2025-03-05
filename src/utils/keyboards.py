@@ -13,3 +13,6 @@ retry_keyboard = ReplyKeyboardMarkup(
     ],
     resize_keyboard=True
 )
+
+def replace_yo_with_e(text):
+    return text.replace("ё", "е").replace("Ё", "Е")
