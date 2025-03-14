@@ -70,19 +70,23 @@ async def draw_north_indian_chart(ascendant_sign, planet_positions):
         ax.add_patch(polygon)
 
     ascendant_index = zodiac_signs_list.index(ascendant_sign)
-    house_planet_count = [0] * 12  # Для планет
-    house_aspect_count = [0] * 12  # Для аспектов
-    vertical_spacing = 30  # Увеличим для лучшей видимости
-    x_offset = 10
-    y_offset = 11
+    house_planet_count = [0] * 12
+    house_aspect_count = [0] * 12
+    vertical_spacing = 20
+    base_x_offset = 10
+    base_y_offset = 10
 
-    # Знаки зодиака
     for i in range(12):
         sign_index = (ascendant_index + i) % 12
         sign = zodiac_signs_list[sign_index]
         x = zodiac_coords[i]["x"] + 15
         y = zodiac_coords[i]["y"] - 7
         ax.text(x, y, sign, fontsize=12, ha='center', va='center', color='black')
+
+    def is_point_in_polygon(x, y, polygon_points):
+        """Проверка, находится ли точка внутри полигона"""
+        from matplotlib.path import Path
+        return Path(polygon_points).contains_point((x, y))
 
     def calculate_aspects(planet, house_index):
         aspects = []
@@ -104,7 +108,8 @@ async def draw_north_indian_chart(ascendant_sign, planet_positions):
             aspects.extend([(house_index + 4) % 12, (house_index + 6) % 12, (house_index + 8) % 12])
         return aspects
 
-    # Сначала рисуем планеты
+    occupied_positions = {i: [] for i in range(12)}
+
     for planet, position in planet_positions:
         house_index = int(position // 30)
         house_index = (house_index - ascendant_index) % 12
@@ -112,37 +117,61 @@ async def draw_north_indian_chart(ascendant_sign, planet_positions):
         planet_index = house_planet_count[house_index]
         house_planet_count[house_index] += 1
 
-        if planet_index < len(coords):
-            x = coords[planet_index]["x"] + x_offset
-            y = outer_size - coords[planet_index]["y"] + y_offset
-        else:
-            x = zodiac_coords[house_index]["x"] + 15 + x_offset
-            y = zodiac_coords[house_index]["y"] - 7 - (planet_index - len(coords)) * vertical_spacing + y_offset
+        polygon_points = polygons[list(polygons.keys())[house_index]]
 
+        if planet_index < len(coords):
+            x = coords[planet_index]["x"] + base_x_offset
+            y = outer_size - coords[planet_index]["y"] + base_y_offset
+        else:
+            x = zodiac_coords[house_index]["x"] + base_x_offset
+            y = zodiac_coords[house_index]["y"] - (planet_index - len(coords)) * vertical_spacing + base_y_offset
+
+        while not is_point_in_polygon(x, outer_size - y, polygon_points) or any(
+                abs(pos[0] - x) < 20 and abs(pos[1] - y) < 20 for pos in occupied_positions[house_index]
+        ):
+            x += 5 if x < 200 else -5
+            y += 5 if y < 200 else -5
+            if x < 10 or x > 400 or y < 10 or y > 400:
+                x = min(max(x, 10), 400)
+                y = min(max(y, 10), 400)
+                break
+
+        occupied_positions[house_index].append((x, y))
         ax.text(x, y, planet, fontsize=14, ha='center', va='center', color='black', fontweight='bold')
 
-    # Затем рисуем аспекты
     for planet, position in planet_positions:
         house_index = int(position // 30)
         house_index = (house_index - ascendant_index) % 12
         aspects = calculate_aspects(planet, house_index)
+
         for aspect_house_index in aspects:
             coords = planet_positions_by_house[aspect_house_index]
             aspect_index = house_aspect_count[aspect_house_index]
             house_aspect_count[aspect_house_index] += 1
+            polygon_points = polygons[list(polygons.keys())[aspect_house_index]]
 
             if aspect_index < len(coords):
-                # Смещаем аспекты левее
-                x_aspect = coords[aspect_index]["x"] + x_offset - 15  # Смещение влево на 15 пикселей
-                y_aspect = outer_size - coords[aspect_index]["y"] + y_offset - 5  # Смещение вниз
+                x = coords[aspect_index]["x"] + base_x_offset - 15
+                y = outer_size - coords[aspect_index]["y"] + base_y_offset - 5
             else:
-                # Смещаем аспекты левее
-                x_aspect = zodiac_coords[aspect_house_index]["x"] + 15 + x_offset - 15  # Смещение влево на 15 пикселей
-                y_aspect = zodiac_coords[aspect_house_index]["y"] - 7 - (
-                        aspect_index - len(coords)) * vertical_spacing + y_offset - 5  # Смещение вниз
+                x = zodiac_coords[aspect_house_index]["x"] + base_x_offset - 15
+                y = zodiac_coords[aspect_house_index]["y"] - (
+                        aspect_index - len(coords)) * vertical_spacing + base_y_offset - 5
+
+            while not is_point_in_polygon(x, outer_size - y, polygon_points) or any(
+                    abs(pos[0] - x) < 20 and abs(pos[1] - y) < 20 for pos in occupied_positions[aspect_house_index]
+            ):
+                x += 5 if x < 200 else -5
+                y += 5 if y < 200 else -5
+                if x < 10 or x > 400 or y < 10 or y > 400:
+                    x = min(max(x, 10), 400)
+                    y = min(max(y, 10), 400)
+                    break
+
+            occupied_positions[aspect_house_index].append((x, y))
             aspect_planet = planet.replace("↑", "").replace("↓", "").replace("\u035F", "").replace("(", "").replace(")",
                                                                                                                     "")
-            ax.text(x_aspect, y_aspect, aspect_planet, fontsize=11, ha='center', va='center', color='gray', alpha=0.5,
+            ax.text(x, y, aspect_planet, fontsize=11, ha='center', va='center', color='gray', alpha=0.5,
                     fontweight='bold')
 
     ax.set_xlim(0, outer_size + 10)
