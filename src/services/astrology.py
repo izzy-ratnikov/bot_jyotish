@@ -3,7 +3,7 @@ import swisseph as swe
 import io
 
 from src.utils.chart_data import planet_positions_by_house, zodiac_signs_list, zodiac_coords, polygons, planets, \
-    zodiac_names, get_basic_astro_data, add_position_data, position_data_with_retrograde
+    zodiac_names, get_basic_astro_data, add_position_data, position_data_with_retrograde, clean_planet_symbol
 
 
 async def calculate_planet_positions(birth_date, birth_time, location):
@@ -56,6 +56,38 @@ async def calculate_asc(birth_date, birth_time, location):
     add_position_data("Asc", asc_position, positions, zodiac_signs)
 
     return positions, zodiac_signs
+
+
+async def calculate_karakas(planets_positions):
+    excluded_planets = ["Ra", "Ke"]
+
+    planets_dict = {
+        clean_planet_symbol(symbol): longitude
+        for symbol, longitude in planets_positions
+    }
+
+    filtered_planets = {k: v for k, v in planets_dict.items() if k not in excluded_planets}
+
+    def get_in_sign_longitude(longitude):
+        return longitude % 30
+
+    sorted_planets = sorted(
+        filtered_planets.items(),
+        key=lambda item: get_in_sign_longitude(item[1]),
+        reverse=True
+    )
+
+    karakas = {
+        "(AK)": sorted_planets[0][0],
+        "(AмK)": sorted_planets[1][0],
+        "(БK)": sorted_planets[2][0],
+        "(MK)": sorted_planets[3][0],
+        "(ПK)": sorted_planets[4][0],
+        "(ГK)": sorted_planets[5][0],
+        "(ДK)": sorted_planets[6][0],
+    }
+
+    return karakas
 
 
 async def draw_north_indian_chart(ascendant_sign, planet_positions):
@@ -192,7 +224,6 @@ async def get_house_info(ascendant_sign, planet_positions):
     house_info = []
 
     for i in range(12):
-
         sign_index = (ascendant_index + i) % 12
         sign = zodiac_names[sign_index]
 
@@ -202,7 +233,8 @@ async def get_house_info(ascendant_sign, planet_positions):
             house_index = int(position // 30)
             house_index = (house_index - ascendant_index) % 12
             if house_index == i:
-                planets_in_house.append(planet)
+                cleaned_planet = clean_planet_symbol(planet)
+                planets_in_house.append(cleaned_planet)
 
         house_str = f"{i + 1}-й\t{sign}\t{', '.join(planets_in_house)}"
         house_info.append(house_str)

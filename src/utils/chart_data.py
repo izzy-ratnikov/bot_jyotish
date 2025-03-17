@@ -52,6 +52,15 @@ def calculate_zodiac_position(longitude):
     return zodiac_sign, degree, minutes, seconds
 
 
+def clean_planet_symbol(symbol):
+    """
+    Очищает символ планеты от обозначений экзальтации, дебилитации, ретроградности и мулатриконы.
+    """
+    for char in ["↑", "↓", "\u035F", "(", ")"]:
+        symbol = symbol.replace(char, "")
+    return symbol.strip()
+
+
 def add_position_data(symbol, longitude, positions, zodiac_signs):
     zodiac_sign, degree, minutes, seconds = calculate_zodiac_position(longitude)
     positions.append((symbol, longitude))

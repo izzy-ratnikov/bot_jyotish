@@ -10,7 +10,8 @@ from geopy.exc import GeocoderTimedOut
 from sqlalchemy.exc import SQLAlchemyError
 from geopy import Nominatim
 from src.database.models.models import Session, UserData
-from src.services.astrology import calculate_planet_positions, draw_north_indian_chart, calculate_asc, get_house_info
+from src.services.astrology import calculate_planet_positions, draw_north_indian_chart, calculate_asc, get_house_info, \
+    calculate_karakas
 from src.services.openai import chat_gpt
 from src.utils.chart_data import zodiac_to_number
 from src.utils.keyboards import start_keyboard, retry_keyboard, replace_yo_with_e
@@ -236,6 +237,7 @@ async def calculate_and_send_chart(message: types.Message, user_data: dict):
     location = user_data['location']
 
     planets_positions, zodiac_signs = await calculate_planet_positions(birth_date, birth_time, location)
+    karakas = await calculate_karakas(planets_positions)
     asc_positions, asc_zodiac_signs = await calculate_asc(birth_date, birth_time, location)
 
     ascendant_info = asc_zodiac_signs.get("Asc")
@@ -258,8 +260,12 @@ async def calculate_and_send_chart(message: types.Message, user_data: dict):
     input_file = BufferedInputFile(chart_image.read(), filename="chart.png")
     await message.answer_photo(photo=input_file, caption="Ваш South Indian Chart.")
 
+    karakas_by_planet = {v: k for k, v in karakas.items()}
+
     zodiac_info = "\n".join([
-        f"{symbol} {zodiac_sign} {degree}˚{minutes:02d}'{seconds:02d}\""
+        f"{symbol:<3} {karakas_by_planet.get(symbol, ' '):<5} {zodiac_sign} {degree:>2}˚{minutes:02d}'{seconds:02d}\""
+        if karakas_by_planet.get(symbol) else
+        f"{symbol:<3} {zodiac_sign} {degree:>2}˚{minutes:02d}'{seconds:02d}\""
         for symbol, (zodiac_sign, degree, minutes, seconds) in zodiac_signs.items()
     ])
 
