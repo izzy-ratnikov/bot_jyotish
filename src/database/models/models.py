@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, Integer, String, Date, Time, BigInteger
+from sqlalchemy import create_engine, Column, Integer, String, Date, Time, BigInteger, Text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
@@ -14,6 +14,9 @@ class UserData(Base):
     location = Column(String, nullable=False)
     birth_date = Column(Date, nullable=False)
     birth_time = Column(Time, nullable=False)
+    chart_interpretation = Column(Text, nullable=True)
+    zodiac_info = Column(Text, nullable=True)
+    houses_info = Column(Text, nullable=True)
 
 
 DATABASE_URL = "postgresql://jyotish:P6SSw0RdJyot1_sh@109.205.180.137:5432/jyotish"

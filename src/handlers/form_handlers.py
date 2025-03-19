@@ -212,7 +212,9 @@ async def confirm_and_proceed(message: types.Message, state: FSMContext):
             "Локация введена некорректно. Пожалуйста, введите корректные координаты или название города.")
 
 
-async def save_user_data(message: types.Message, user_data: dict):
+async def save_user_data(message: types.Message, user_data: dict, interpretation: str = None,
+    zodiac_info: str = None,
+    houses_info: str = None):
     session = Session()
     try:
         user_data_entry = UserData(
@@ -221,6 +223,9 @@ async def save_user_data(message: types.Message, user_data: dict):
             location=user_data['location'],
             birth_date=datetime.strptime(user_data['birth_date'], "%d-%m-%Y").date(),
             birth_time=datetime.strptime(user_data['birth_time'], "%H:%M:%S").time(),
+            chart_interpretation=interpretation,
+            zodiac_info=zodiac_info,
+            houses_info=houses_info
         )
         session.add(user_data_entry)
         session.commit()
@@ -257,8 +262,7 @@ async def calculate_and_send_chart(message: types.Message, user_data: dict):
         return
 
     house_info = await get_house_info(asc_sign, planets_positions)
-    house_info_text = "Дома в карте:\n" + "\n".join(house_info)
-    await message.answer(house_info_text)
+
 
     chart_image = await draw_north_indian_chart(asc_sign_number, planets_positions)
     input_file = BufferedInputFile(chart_image.read(), filename="chart.png")
@@ -276,11 +280,21 @@ async def calculate_and_send_chart(message: types.Message, user_data: dict):
            (pada := (await get_nakshatra_and_pada(zodiac_symbols_to_names.get(zodiac_sign, zodiac_sign),
                                                   to_decimal_degrees(degree, minutes, seconds)))[1])
     ])
+    house_info_text = "Дома в карте:\n" + "\n".join(house_info)
+    interpretation = await chat_gpt(house_info_text)
 
+    await save_user_data(
+        message,
+        user_data,
+        interpretation=interpretation,
+        zodiac_info=zodiac_info,
+        houses_info=house_info_text
+    )
     await message.answer(f"Знаки зодиака с градусами:\n{zodiac_info}\n{ascendant_string}")
+    await message.answer(house_info_text)
 
     processing_message = await message.answer("Обрабатываем результаты расчета...")
-    interpretation = await chat_gpt(house_info_text)
+
     await processing_message.delete()
     await send_long_message(message, f"Расшифровка натальной карты:\n{interpretation}")
 
