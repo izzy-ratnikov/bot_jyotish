@@ -11,9 +11,9 @@ from sqlalchemy.exc import SQLAlchemyError
 from geopy import Nominatim
 from src.database.models.models import Session, UserData
 from src.services.astrology import calculate_planet_positions, draw_north_indian_chart, calculate_asc, get_house_info, \
-    calculate_karakas
+    calculate_karakas, get_nakshatra_and_pada
 from src.services.openai import chat_gpt
-from src.utils.chart_data import zodiac_to_number
+from src.utils.chart_data import zodiac_to_number, to_decimal_degrees, zodiac_symbols_to_names
 from src.utils.keyboards import start_keyboard, retry_keyboard, replace_yo_with_e
 from src.utils.message import send_long_message
 
@@ -245,8 +245,12 @@ async def calculate_and_send_chart(message: types.Message, user_data: dict):
         await message.answer("Ошибка: Не удалось получить информацию об асценденте.")
         return
 
-    ascendant_string = f"Asc {ascendant_info[0]} {ascendant_info[1]}˚{ascendant_info[2]:02d}'{ascendant_info[3]:02d}\""
-    asc_sign = ascendant_info[0]
+    asc_sign, asc_deg, asc_min, asc_sec = ascendant_info
+    asc_longitude = to_decimal_degrees(asc_deg, asc_min, asc_sec)
+    asc_nakshatra, asc_pada = await get_nakshatra_and_pada(zodiac_symbols_to_names.get(asc_sign, asc_sign),
+                                                           asc_longitude)
+    ascendant_string = f"Asc {asc_sign} {asc_deg}˚{asc_min:02d}'{asc_sec:02d}\"   {asc_nakshatra} {asc_pada}"
+
     asc_sign_number = zodiac_to_number.get(asc_sign)
     if not asc_sign_number:
         await message.answer("Ошибка: Не удалось определить номер знака зодиака для асцендента.")
@@ -263,10 +267,14 @@ async def calculate_and_send_chart(message: types.Message, user_data: dict):
     karakas_by_planet = {v: k for k, v in karakas.items()}
 
     zodiac_info = "\n".join([
-        f"{symbol:<3} {karakas_by_planet.get(symbol, ' '):<5} {zodiac_sign} {degree:>2}˚{minutes:02d}'{seconds:02d}\""
+        f"{symbol:<3} {karakas_by_planet.get(symbol, ' '):<5} {zodiac_sign} {degree:>2}˚{minutes:02d}'{seconds:02d}\"   {nakshatra} {pada}"
         if karakas_by_planet.get(symbol) else
-        f"{symbol:<3} {zodiac_sign} {degree:>2}˚{minutes:02d}'{seconds:02d}\""
+        f"{symbol:<3} {zodiac_sign} {degree:>2}˚{minutes:02d}'{seconds:02d}\"   {nakshatra} {pada}"
         for symbol, (zodiac_sign, degree, minutes, seconds) in zodiac_signs.items()
+        if (nakshatra := (await get_nakshatra_and_pada(zodiac_symbols_to_names.get(zodiac_sign, zodiac_sign),
+                                                       to_decimal_degrees(degree, minutes, seconds)))[0]) and
+           (pada := (await get_nakshatra_and_pada(zodiac_symbols_to_names.get(zodiac_sign, zodiac_sign),
+                                                  to_decimal_degrees(degree, minutes, seconds)))[1])
     ])
 
     await message.answer(f"Знаки зодиака с градусами:\n{zodiac_info}\n{ascendant_string}")

@@ -3,7 +3,8 @@ import swisseph as swe
 import io
 
 from src.utils.chart_data import planet_positions_by_house, zodiac_signs_list, zodiac_coords, polygons, planets, \
-    zodiac_names, get_basic_astro_data, add_position_data, position_data_with_retrograde, clean_planet_symbol
+    zodiac_names, get_basic_astro_data, add_position_data, position_data_with_retrograde, clean_planet_symbol, \
+    NAKSHATRAS
 
 
 async def calculate_planet_positions(birth_date, birth_time, location):
@@ -240,3 +241,28 @@ async def get_house_info(ascendant_sign, planet_positions):
         house_info.append(house_str)
 
     return house_info
+
+
+async def get_nakshatra_and_pada(zodiac_sign, longitude):
+    """Определяет Накшатру и пада по знаку зодиака и долготе."""
+    sign_nakshatras = NAKSHATRAS.get(zodiac_sign)
+    if not sign_nakshatras:
+        return None, None
+
+    in_sign_longitude = longitude % 30
+    for nakshatra_name, start, end, pada_ranges in sign_nakshatras:
+        if start <= in_sign_longitude < end:
+            pada_index = 1
+            for pada_start, pada_end in pada_ranges:
+                if pada_start <= in_sign_longitude < pada_end:
+                    if nakshatra_name == "Читра" and zodiac_sign == "Весы":
+                        pada_index += 2
+                    elif nakshatra_name == "Мригашира" and zodiac_sign == "Близнецы":
+                        pada_index += 2
+                    elif nakshatra_name == "Криттика" and zodiac_sign == "Телец":
+                        pada_index += 1
+                    return nakshatra_name, pada_index
+                pada_index += 1
+            return nakshatra_name, pada_index - 1
+    last_nakshatra = sign_nakshatras[-1]
+    return last_nakshatra[0], len(last_nakshatra[3])
