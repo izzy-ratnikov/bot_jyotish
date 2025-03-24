@@ -17,6 +17,7 @@ class UserData(Base):
     chart_interpretation = Column(Text, nullable=True)
     zodiac_info = Column(Text, nullable=True)
     houses_info = Column(Text, nullable=True)
+    vimshottari_dasha = Column(String, nullable=False)
 
 
 DATABASE_URL = "postgresql://jyotish:P6SSw0RdJyot1_sh@109.205.180.137:5432/jyotish"

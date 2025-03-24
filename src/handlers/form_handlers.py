@@ -11,9 +11,10 @@ from sqlalchemy.exc import SQLAlchemyError
 from geopy import Nominatim
 from src.database.models.models import Session, UserData
 from src.services.astrology import calculate_planet_positions, draw_north_indian_chart, calculate_asc, get_house_info, \
-    calculate_karakas, get_nakshatra_and_pada
+    calculate_karakas, get_nakshatra_and_pada, get_moon_degree, get_moon_nakshatra
 from src.services.openai import chat_gpt
-from src.utils.chart_data import zodiac_to_number, to_decimal_degrees, zodiac_symbols_to_names
+from src.utils.chart_data import zodiac_to_number, to_decimal_degrees, zodiac_symbols_to_names, get_starting_planet, \
+    calculate_remaining_time, dasha_order, planet_periods
 from src.utils.keyboards import start_keyboard, retry_keyboard, replace_yo_with_e
 from src.utils.message import send_long_message
 
@@ -212,8 +213,7 @@ async def confirm_and_proceed(message: types.Message, state: FSMContext):
 
 
 async def save_user_data(message: types.Message, user_data: dict, interpretation: str = None,
-    zodiac_info: str = None,
-    houses_info: str = None):
+                         zodiac_info: str = None, houses_info: str = None, vimshottari_dasha: str = None):
     session = Session()
     try:
         user_data_entry = UserData(
@@ -224,7 +224,8 @@ async def save_user_data(message: types.Message, user_data: dict, interpretation
             birth_time=datetime.strptime(user_data['birth_time'], "%H:%M:%S").time(),
             chart_interpretation=interpretation,
             zodiac_info=zodiac_info,
-            houses_info=houses_info
+            houses_info=houses_info,
+            vimshottari_dasha=vimshottari_dasha  # Сохраняем Вимшоттари Даши
         )
         session.add(user_data_entry)
         session.commit()
@@ -262,7 +263,6 @@ async def calculate_and_send_chart(message: types.Message, user_data: dict):
 
     house_info = await get_house_info(asc_sign, planets_positions)
 
-
     chart_image = await draw_north_indian_chart(asc_sign_number, planets_positions)
     input_file = BufferedInputFile(chart_image.read(), filename="chart.png")
     await message.answer_photo(photo=input_file, caption="Ваш South Indian Chart.")
@@ -282,13 +282,32 @@ async def calculate_and_send_chart(message: types.Message, user_data: dict):
     house_info_text = "Дома в карте:\n" + "\n".join(house_info)
     interpretation = await chat_gpt(house_info_text)
 
+    moon_nakshatra = await get_moon_nakshatra(planets_positions)
+    starting_planet = get_starting_planet(moon_nakshatra)
+    moon_degree = await get_moon_degree(planets_positions)
+    percent_passed, years_remaining = calculate_remaining_time(moon_degree, starting_planet)
+    start_index = dasha_order.index(starting_planet)
+    sequence = dasha_order[start_index:] + dasha_order[:start_index]
+    vimshottari_dasha = (
+
+        "Последовательность периодов\n"
+    )
+    for i, planet in enumerate(sequence):
+        if i == 0:
+            vimshottari_dasha += f"▸ {planet}: {years_remaining:.2f} лет\n"
+        else:
+            vimshottari_dasha += f"▸ {planet}: {planet_periods[planet]} лет\n"
+    vimshottari_dasha += "Общая продолжительность: 120 лет"
+
     await save_user_data(
         message,
         user_data,
         interpretation=interpretation,
         zodiac_info=zodiac_info,
-        houses_info=house_info_text
+        houses_info=house_info_text,
+        vimshottari_dasha=vimshottari_dasha
     )
+    await message.answer(vimshottari_dasha)
     await message.answer(f"Знаки зодиака с градусами:\n{zodiac_info}\n{ascendant_string}")
     await message.answer(house_info_text)
 

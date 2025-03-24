@@ -128,7 +128,6 @@ NAKSHATRAS = {
 }
 
 
-
 def to_decimal_degrees(degrees, minutes, seconds):
     return degrees + minutes / 60 + seconds / 3600
 
@@ -350,3 +349,60 @@ zodiac_symbols_to_names = {
     "♌": "Лев", "♍": "Дева", "♎": "Весы", "♏": "Скорпион",
     "♐": "Стрелец", "♑": "Козерог", "♒": "Водолей", "♓": "Рыбы"
 }
+
+nakshatra_planets = {
+    "Ашвини": "Кету",
+    "Бхарани": "Венера",
+    "Криттика": "Солнце",
+    "Рохини": "Луна",
+    "Мригашира": "Марс",
+    "Ардра": "Раху",
+    "Пунарвасу": "Юпитер",
+    "Пушья": "Сатурн",
+    "Ашлеша": "Меркурий",
+    "Магха": "Кету",
+    "Пурва-пхалгуни": "Венера",
+    "Уттара-пхалгуни": "Солнце",
+    "Хаста": "Луна",
+    "Читра": "Марс",
+    "Свати": "Раху",
+    "Вишакха": "Юпитер",
+    "Анурадха": "Сатурн",
+    "Джйештха": "Меркурий",
+    "Мула": "Кету",
+    "Пурва-ашадха": "Венера",
+    "Уттара-ашадха": "Солнце",
+    "Шравана": "Луна",
+    "Дхаништха": "Марс",
+    "Шатабхиша": "Раху",
+    "Пурва-бхадрапада": "Юпитер",
+    "Уттара-бхадрапада": "Сатурн",
+    "Ревати": "Меркурий"
+}
+
+
+def get_starting_planet(moon_nakshatra):
+    return nakshatra_planets.get(moon_nakshatra, "Неизвестно")
+
+
+planet_periods = {
+    "Кету": 7,
+    "Венера": 20,
+    "Солнце": 6,
+    "Луна": 10,
+    "Марс": 7,
+    "Раху": 18,
+    "Юпитер": 16,
+    "Сатурн": 19,
+    "Меркурий": 17
+}
+
+dasha_order = ["Кету", "Венера", "Солнце", "Луна", "Марс", "Раху", "Юпитер", "Сатурн", "Меркурий"]
+
+
+def calculate_remaining_time(moon_degree, starting_planet, nakshatra_length=13.3333):
+    percent_passed = (moon_degree / nakshatra_length) * 100
+    period_length = planet_periods[starting_planet]
+    years_passed = period_length * (percent_passed / 100)
+    years_remaining = period_length - years_passed
+    return percent_passed, years_remaining

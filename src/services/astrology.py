@@ -244,7 +244,6 @@ async def get_house_info(ascendant_sign, planet_positions):
 
 
 async def get_nakshatra_and_pada(zodiac_sign, longitude):
-    """Определяет Накшатру и пада по знаку зодиака и долготе."""
     sign_nakshatras = NAKSHATRAS.get(zodiac_sign)
     if not sign_nakshatras:
         return None, None
@@ -266,3 +265,30 @@ async def get_nakshatra_and_pada(zodiac_sign, longitude):
             return nakshatra_name, pada_index - 1
     last_nakshatra = sign_nakshatras[-1]
     return last_nakshatra[0], len(last_nakshatra[3])
+
+
+async def get_zodiac_sign(longitude):
+    zodiac_signs = [
+        "Овен", "Телец", "Близнецы", "Рак", "Лев", "Дева",
+        "Весы", "Скорпион", "Стрелец", "Козерог", "Водолей", "Рыбы"
+    ]
+    index = int(longitude // 30)
+    return zodiac_signs[index]
+
+
+async def get_moon_degree(planets_positions):
+    for planet in planets_positions:
+        planet_symbol, longitude = planet
+        if planet_symbol == "Mo":
+            return longitude % 30
+    raise ValueError("Позиция Луны не найдена в данных.")
+
+
+async def get_moon_nakshatra(planets_positions):
+    for planet in planets_positions:
+        planet_symbol, longitude = planet
+        if planet_symbol == "Mo":
+            zodiac_sign = await get_zodiac_sign(longitude)
+            nakshatra, _ = await get_nakshatra_and_pada(zodiac_sign, longitude)
+            return nakshatra
+    raise ValueError("Позиция Луны не найдена в данных.")
