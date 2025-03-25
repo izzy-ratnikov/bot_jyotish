@@ -279,7 +279,7 @@ async def get_zodiac_sign(longitude):
 async def get_moon_degree(planets_positions):
     for planet in planets_positions:
         planet_symbol, longitude = planet
-        if planet_symbol == "Mo":
+        if "Mo" in planet_symbol:
             return longitude % 30
     raise ValueError("Позиция Луны не найдена в данных.")
 
@@ -287,7 +287,7 @@ async def get_moon_degree(planets_positions):
 async def get_moon_nakshatra(planets_positions):
     for planet in planets_positions:
         planet_symbol, longitude = planet
-        if planet_symbol == "Mo":
+        if "Mo" in planet_symbol:
             zodiac_sign = await get_zodiac_sign(longitude)
             nakshatra, _ = await get_nakshatra_and_pada(zodiac_sign, longitude)
             return nakshatra

@@ -19,7 +19,7 @@ from src.utils.keyboards import start_keyboard, retry_keyboard, replace_yo_with_
 from src.utils.message import send_long_message
 
 router = Router()
-geolocator = Nominatim(user_agent="jyotish_bot")
+geolocator = Nominatim(user_agent="jyotish_bot", timeout=10)
 CITIES_PER_PAGE = 5
 
 
@@ -199,17 +199,19 @@ async def confirm_and_proceed(message: types.Message, state: FSMContext):
     user_data = await state.get_data()
     birth_date = user_data.get('birth_date')
     birth_time = user_data.get('birth_time')
+    location = user_data.get('location')
 
-    if not birth_date or not birth_time:
+    if not birth_date or not birth_time or not location:
         await message.answer("Не указаны дата или время рождения. Пожалуйста, попробуйте снова.")
         return
 
     try:
+        await save_user_data(message, user_data)
         await calculate_and_send_chart(message, user_data)
         await state.clear()
     except ValueError as e:
         await message.answer(
-            "Локация введена некорректно. Пожалуйста, введите корректные координаты или название города.")
+            f"Локация введена некорректно. Пожалуйста, введите корректные координаты или название города. {e}")
 
 
 async def save_user_data(message: types.Message, user_data: dict, interpretation: str = None,
@@ -225,7 +227,7 @@ async def save_user_data(message: types.Message, user_data: dict, interpretation
             chart_interpretation=interpretation,
             zodiac_info=zodiac_info,
             houses_info=houses_info,
-            vimshottari_dasha=vimshottari_dasha  # Сохраняем Вимшоттари Даши
+            vimshottari_dasha=vimshottari_dasha
         )
         session.add(user_data_entry)
         session.commit()
