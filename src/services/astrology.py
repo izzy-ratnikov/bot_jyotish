@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import swisseph as swe
 import io
-
+from matplotlib.path import Path
 from src.utils.chart_data import planet_positions_by_house, zodiac_signs_list, zodiac_coords, polygons, planets, \
     zodiac_names, get_basic_astro_data, add_position_data, position_data_with_retrograde, clean_planet_symbol, \
     NAKSHATRAS
@@ -117,8 +117,6 @@ async def draw_north_indian_chart(ascendant_sign, planet_positions):
         ax.text(x, y, sign, fontsize=12, ha='center', va='center', color='black')
 
     def is_point_in_polygon(x, y, polygon_points):
-        """Проверка, находится ли точка внутри полигона"""
-        from matplotlib.path import Path
         return Path(polygon_points).contains_point((x, y))
 
     def calculate_aspects(planet, house_index):
@@ -159,6 +157,9 @@ async def draw_north_indian_chart(ascendant_sign, planet_positions):
             x = zodiac_coords[house_index]["x"] + base_x_offset
             y = zodiac_coords[house_index]["y"] - (planet_index - len(coords)) * vertical_spacing + base_y_offset
 
+        max_iterations = 200
+        iteration = 0
+
         while not is_point_in_polygon(x, outer_size - y, polygon_points) or any(
                 abs(pos[0] - x) < 20 and abs(pos[1] - y) < 20 for pos in occupied_positions[house_index]
         ):
@@ -167,6 +168,10 @@ async def draw_north_indian_chart(ascendant_sign, planet_positions):
             if x < 10 or x > 400 or y < 10 or y > 400:
                 x = min(max(x, 10), 400)
                 y = min(max(y, 10), 400)
+                break
+            iteration += 1
+            if iteration > max_iterations:
+                print(f"Warning: Max iterations reached for planet {planet} in house {house_index}")
                 break
 
         occupied_positions[house_index].append((x, y))
@@ -191,6 +196,8 @@ async def draw_north_indian_chart(ascendant_sign, planet_positions):
                 y = zodiac_coords[aspect_house_index]["y"] - (
                         aspect_index - len(coords)) * vertical_spacing + base_y_offset - 5
 
+            max_iterations = 200
+            iteration = 0
             while not is_point_in_polygon(x, outer_size - y, polygon_points) or any(
                     abs(pos[0] - x) < 20 and abs(pos[1] - y) < 20 for pos in occupied_positions[aspect_house_index]
             ):
@@ -199,6 +206,10 @@ async def draw_north_indian_chart(ascendant_sign, planet_positions):
                 if x < 10 or x > 400 or y < 10 or y > 400:
                     x = min(max(x, 10), 400)
                     y = min(max(y, 10), 400)
+                    break
+                iteration += 1
+                if iteration > max_iterations:
+                    print(f"Warning: Max iterations reached for aspect of {planet} in house {aspect_house_index}")
                     break
 
             occupied_positions[aspect_house_index].append((x, y))
