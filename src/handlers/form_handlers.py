@@ -282,7 +282,7 @@ async def calculate_and_send_chart(message: types.Message, user_data: dict):
                                                   to_decimal_degrees(degree, minutes, seconds)))[1])
     ])
     house_info_text = "Дома в карте:\n" + "\n".join(house_info)
-    interpretation = await chat_gpt(house_info_text)
+
 
     moon_nakshatra = await get_moon_nakshatra(planets_positions)
     starting_planet = get_starting_planet(moon_nakshatra)
@@ -300,7 +300,7 @@ async def calculate_and_send_chart(message: types.Message, user_data: dict):
         else:
             vimshottari_dasha += f"▸ {planet}: {planet_periods[planet]} лет\n"
     vimshottari_dasha += "Общая продолжительность: 120 лет"
-
+    interpretation = await chat_gpt(house_info_text, vimshottari_dasha)
     await save_user_data(
         message,
         user_data,

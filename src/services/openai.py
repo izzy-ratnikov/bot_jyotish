@@ -2,14 +2,21 @@ from openai import OpenAI
 from src.dispatcher.dispatcher import openai_api_key
 
 
-async def chat_gpt(house_info):
+async def chat_gpt(house_info, vimshottari_dash):
     client = OpenAI(api_key=openai_api_key)
 
     prompt = f"""
     Ты астролог высокого уровня джйотиш, который отвечает на вопросы максимально подробно и максимально корректно.
     Расшифруй натальную карту на основе следующих данных:
     {house_info}
+    {vimshottari_dash}
+    **Задача:**
+    - Проанализируй положение планет в домах, их силу и влияние.
+    - Опиши ключевые тенденции в жизни человека.
+    - Укажи, какие периоды (даши) будут наиболее важными.
+    - Будь максимально точным и детализированным.
     """
+
 
     response = client.chat.completions.create(
         model="gpt-4o-mini",
