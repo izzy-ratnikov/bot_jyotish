@@ -206,7 +206,6 @@ async def confirm_and_proceed(message: types.Message, state: FSMContext):
         return
 
     try:
-        # await save_user_data(message, user_data)
         await calculate_and_send_chart(message, user_data)
         await state.clear()
     except ValueError as e:
