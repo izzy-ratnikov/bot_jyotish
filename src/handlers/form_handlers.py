@@ -73,7 +73,7 @@ async def process_birth_time(message: types.Message, state: FSMContext):
         return
 
     await state.update_data(birth_time=birth_time)
-    await message.answer("Теперь введи свою локацию (город или координаты).")
+    await message.answer("Теперь введи свое место рождения (город или координаты).")
     await state.set_state(Form.waiting_for_location)
 
 
@@ -206,7 +206,7 @@ async def confirm_and_proceed(message: types.Message, state: FSMContext):
         return
 
     try:
-        await save_user_data(message, user_data)
+        # await save_user_data(message, user_data)
         await calculate_and_send_chart(message, user_data)
         await state.clear()
     except ValueError as e:
