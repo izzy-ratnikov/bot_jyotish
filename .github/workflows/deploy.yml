@@ -26,13 +26,11 @@ jobs:
 
       - name: Deploy to production server
         run: |
-          ssh -p 51821 root@185.189.58.71 "
-            cd ~/bot_jyotish/src || exit 1
-            git fetch origin
-            git checkout main
-            git reset --hard origin/main
-            chmod -R 755 .  # На всякий случай исправляем права
+          ssh -T -p 51821 root@185.189.58.71 << 'EOF'
+            echo "Deploying to production server..."
+            cd ~/bot_jyotish/src
+            git pull origin main
             source .venv/bin/activate
             pip install -r requirements.txt
-            systemctl restart jyotish_bot.service
-          "
+            systemctl restart jyotish_bot.service  # Перезапуск сервиса
+          EOF
