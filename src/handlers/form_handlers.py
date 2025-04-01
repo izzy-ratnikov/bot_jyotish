@@ -282,22 +282,20 @@ async def calculate_and_send_chart(message: types.Message, user_data: dict):
     ])
     house_info_text = "Дома в карте:\n" + "\n".join(house_info)
 
-
     moon_nakshatra = await get_moon_nakshatra(planets_positions)
     starting_planet = get_starting_planet(moon_nakshatra)
     moon_degree = await get_moon_degree(planets_positions)
-    percent_passed, years_remaining = calculate_remaining_time(moon_degree, starting_planet)
+    years_remaining, years_passed = calculate_remaining_time(moon_degree, starting_planet)
     start_index = dasha_order.index(starting_planet)
     sequence = dasha_order[start_index:] + dasha_order[:start_index]
-    vimshottari_dasha = (
+    vimshottari_dasha = "Последовательность периодов\n"
 
-        "Последовательность периодов\n"
-    )
     for i, planet in enumerate(sequence):
         if i == 0:
             vimshottari_dasha += f"▸ {planet}: {years_remaining:.2f} лет\n"
         else:
             vimshottari_dasha += f"▸ {planet}: {planet_periods[planet]} лет\n"
+    vimshottari_dasha += f"▸ {starting_planet}: {years_passed:.2f} лет\n"
     vimshottari_dasha += "Общая продолжительность: 120 лет"
     interpretation = await chat_gpt(house_info_text, vimshottari_dasha)
     await save_user_data(
@@ -327,5 +325,3 @@ async def calculate_and_send_chart(message: types.Message, user_data: dict):
 async def retry_handler(message: types.Message, state: FSMContext):
     await state.clear()
     await get_user_data(message, state)
-
-"bye"

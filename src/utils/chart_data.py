@@ -401,8 +401,8 @@ dasha_order = ["Кету", "Венера", "Солнце", "Луна", "Марс
 
 
 def calculate_remaining_time(moon_degree, starting_planet, nakshatra_length=13.3333):
-    percent_passed = (moon_degree / nakshatra_length) * 100
     period_length = planet_periods[starting_planet]
+    percent_passed = (moon_degree / nakshatra_length) * 100
     years_passed = period_length * (percent_passed / 100)
     years_remaining = period_length - years_passed
-    return percent_passed, years_remaining
+    return years_remaining, years_passed
