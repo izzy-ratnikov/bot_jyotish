@@ -327,3 +327,5 @@ async def calculate_and_send_chart(message: types.Message, user_data: dict):
 async def retry_handler(message: types.Message, state: FSMContext):
     await state.clear()
     await get_user_data(message, state)
+
+"hi"
