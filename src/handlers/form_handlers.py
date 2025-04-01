@@ -328,4 +328,4 @@ async def retry_handler(message: types.Message, state: FSMContext):
     await state.clear()
     await get_user_data(message, state)
 
-"hi"
+"bye"

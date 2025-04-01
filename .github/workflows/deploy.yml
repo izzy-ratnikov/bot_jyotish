@@ -3,7 +3,7 @@ name: Deploy to Production Server
 on:
   push:
     branches:
-      - main
+      - main  # Триггер на пуши и мерджи в main ветку
 
 jobs:
   deploy:
@@ -29,19 +29,8 @@ jobs:
           ssh -T -p 51821 root@185.189.58.71 << 'EOF'
             echo "Deploying to production server..."
             cd ~/bot_jyotish/src
-            
-            # Настройка Git для использования SSH
-            export GIT_SSH_COMMAND="ssh -i ~/.ssh/id_ed25519 -o IdentitiesOnly=yes"
-            
-            # Обновление репозитория
-            git fetch origin
-            git reset --hard origin/main
-            
-            # Активация виртуального окружения и установка зависимостей
+            git pull origin main
             source .venv/bin/activate
             pip install -r requirements.txt
-            
-            # Перезапуск сервиса
-            systemctl restart jyotish_bot.service
-            echo "Deployment completed successfully!"
+            systemctl restart jyotish_bot.service  # Перезапуск сервиса
           EOF
