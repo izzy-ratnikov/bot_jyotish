@@ -10,3 +10,4 @@ swisseph==0.0.0.dev1
 timezonefinder==6.5.7
 openai==1.61.1
 pydantic-settings==2.8.1
+asyncpg==0.30.0
