@@ -113,12 +113,16 @@ async def process_location(message: types.Message, state: FSMContext):
 
             if city_id not in seen_cities:
                 seen_cities.add(city_id)
-                unique_locations.append(location)
+                unique_locations.append({
+                    "address": location.address,
+                    "latitude": location.latitude,
+                    "longitude": location.longitude,
+                    "raw": location.raw
+                })
 
-        unique_locations.sort(key=lambda loc: loc.address.split(",")[-1].strip())
+        unique_locations.sort(key=lambda loc: loc["address"].split(",")[-1].strip())
 
         await state.update_data(all_locations=unique_locations, page=0)
-
         await show_city_page(message, state)
 
     except GeocoderTimedOut:
@@ -129,7 +133,7 @@ async def process_location(message: types.Message, state: FSMContext):
 
 async def show_city_page(message: types.Message, state: FSMContext):
     user_data = await state.get_data()
-    all_locations = user_data.get("all_locations")
+    all_locations = user_data.get("all_locations", [])
     page = user_data.get("page", 0)
 
     start_index = page * CITIES_PER_PAGE
@@ -138,8 +142,7 @@ async def show_city_page(message: types.Message, state: FSMContext):
 
     builder = InlineKeyboardBuilder()
     for location in current_locations:
-
-        address_parts = location.address.split(",")
+        address_parts = location["address"].split(",")
         city_name = address_parts[0].strip()
         country = address_parts[-1].strip()
 
@@ -152,7 +155,7 @@ async def show_city_page(message: types.Message, state: FSMContext):
         else:
             button_text = f"{city_name}, {country}"
 
-        callback_data = f"city_{location.latitude}_{location.longitude}"
+        callback_data = f"city_{location['latitude']}_{location['longitude']}"
         builder.add(types.InlineKeyboardButton(text=button_text, callback_data=callback_data))
 
     if page > 0:
@@ -218,7 +221,7 @@ async def save_user_data(message: types.Message, session: AsyncSession, user_dat
                          zodiac_info: str = None, houses_info: str = None, vimshottari_dasha: str = None):
     try:
         user_data_entry = {
-            "telegram_id": message.chat.id,
+            "telegram_id": str(message.chat.id),
             "username": message.chat.username,
             "location": user_data['location'],
             "birth_date": datetime.strptime(user_data['birth_date'], "%d-%m-%Y").date(),
