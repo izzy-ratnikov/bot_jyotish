@@ -1,0 +1,60 @@
+services:
+  bot:
+    image: burvelandrei/jyotish-bot:latest
+    container_name: jyotish-bot
+    restart: unless-stopped
+    volumes:
+      - ./logs:/app/logs
+    depends_on:
+      db_bot:
+        condition: service_healthy
+      redis_bot:
+        condition: service_healthy
+    env_file: .env
+    networks:
+      - jyotish-network
+
+  db_bot:
+    image: postgres:16
+    container_name: postgres_db_bot
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - "5433:5432"
+    volumes:
+      - pg_data_bot:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - jyotish-network
+
+  redis_bot:
+    image: redis:7
+    container_name: redis_bot
+    restart: unless-stopped
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data_bot:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - jyotish-network
+
+volumes:
+  pg_data_bot:
+  redis_data_bot:
+
+networks:
+  jyotish-network:
+    driver: bridge
