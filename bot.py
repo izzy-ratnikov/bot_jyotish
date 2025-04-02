@@ -4,7 +4,7 @@ import logging.config
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.fsm.storage.redis import RedisStorage, DefaultKeyBuilder
-# from utils.logger import logging_config
+from utils.logger import logging_config
 from keyboards.set_main_menu import set_main_menu
 from handlers import form_handlers
 # from db.connect import AsyncSessionLocal
@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 # Функция конфигурирования и запуска бота
 async def main() -> None:
-    # logging.config.dictConfig(logging_config)
+    logging.config.dictConfig(logging_config)
     logger.info("Starting BOTV")
 
     # Инициализируем бот, редис и диспетчер
