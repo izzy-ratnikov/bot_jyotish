@@ -291,7 +291,10 @@ async def get_moon_degree(planets_positions):
     for planet in planets_positions:
         planet_symbol, longitude = planet
         if "Mo" in planet_symbol:
-            return longitude % 30
+            nakshatra_number = int(longitude // 13.3333)
+            start_of_nakshatra = nakshatra_number * 13.3333
+            degree_in_nakshatra = longitude - start_of_nakshatra
+            return degree_in_nakshatra
     raise ValueError("Позиция Луны не найдена в данных.")
 
 
