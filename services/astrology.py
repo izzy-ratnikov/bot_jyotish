@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import swisseph as swe
 import io
 from matplotlib.path import Path
-from src.utils.chart_data import planet_positions_by_house, zodiac_signs_list, zodiac_coords, polygons, planets, \
+from utils.chart_data import planet_positions_by_house, zodiac_signs_list, zodiac_coords, polygons, planets, \
     zodiac_names, get_basic_astro_data, add_position_data, position_data_with_retrograde, clean_planet_symbol, \
     NAKSHATRAS
 

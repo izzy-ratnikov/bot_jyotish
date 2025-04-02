@@ -9,14 +9,14 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from geopy.exc import GeocoderTimedOut
 from sqlalchemy.exc import SQLAlchemyError
 from geopy import Nominatim
-from src.database.models.models import Session, UserData
-from src.services.astrology import calculate_planet_positions, draw_north_indian_chart, calculate_asc, get_house_info, \
+from database.models import Session, UserData
+from services.astrology import calculate_planet_positions, draw_north_indian_chart, calculate_asc, get_house_info, \
     calculate_karakas, get_nakshatra_and_pada, get_moon_degree, get_moon_nakshatra
-from src.services.openai import chat_gpt
-from src.utils.chart_data import zodiac_to_number, to_decimal_degrees, zodiac_symbols_to_names, get_starting_planet, \
+from services.openai import chat_gpt
+from utils.chart_data import zodiac_to_number, to_decimal_degrees, zodiac_symbols_to_names, get_starting_planet, \
     calculate_remaining_time, dasha_order, planet_periods
-from src.utils.keyboards import start_keyboard, retry_keyboard, replace_yo_with_e
-from src.utils.message import send_long_message
+from keyboards.reply import start_keyboard, retry_keyboard, replace_yo_with_e
+from utils.message import send_long_message
 
 router = Router()
 geolocator = Nominatim(user_agent="jyotish_bot", timeout=10)

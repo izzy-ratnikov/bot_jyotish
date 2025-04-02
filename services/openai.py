@@ -1,9 +1,9 @@
 from openai import OpenAI
-from src.dispatcher.dispatcher import openai_api_key
+from config import settings
 
 
 async def chat_gpt(house_info, vimshottari_dash):
-    client = OpenAI(api_key=openai_api_key)
+    client = OpenAI(api_key=settings.OPENAI_API_KEY)
 
     prompt = f"""
     Ты астролог высокого уровня джйотиш, который отвечает на вопросы максимально подробно и максимально корректно.
