@@ -7,8 +7,8 @@ from aiogram.fsm.storage.redis import RedisStorage, DefaultKeyBuilder
 from utils.logger import logging_config
 from keyboards.set_main_menu import set_main_menu
 from handlers import form_handlers
-# from db.connect import AsyncSessionLocal
-# from utils.middlewares import DBSessionMiddleware
+from database.connect import AsyncSessionLocal
+from utils.middlewares import DBSessionMiddleware
 from config import settings
 
 
@@ -35,7 +35,7 @@ async def main() -> None:
     await set_main_menu(bot)
 
     # Добавляем миддлварь для сессий к БД
-    # dp.update.middleware(DBSessionMiddleware(AsyncSessionLocal))
+    dp.update.middleware(DBSessionMiddleware(AsyncSessionLocal))
 
     # Регистриуем роутеры в диспетчере
     dp.include_router(form_handlers.router)

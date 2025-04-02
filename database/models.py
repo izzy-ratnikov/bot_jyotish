@@ -1,15 +1,24 @@
-from sqlalchemy import create_engine, Column, Integer, String, Date, Time, BigInteger, Text
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    Date,
+    Time,
+    BigInteger,
+    Text,
+)
+from sqlalchemy.orm import DeclarativeBase
 
-Base = declarative_base()
+
+class Base(DeclarativeBase):
+    pass
 
 
 class UserData(Base):
-    __tablename__ = 'user_data'
+    __tablename__ = "user_data"
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
-    telegram_id = Column(Integer, nullable=False)
+    telegram_id = Column(String, nullable=False)
     username = Column(String, nullable=True)
     location = Column(String, nullable=False)
     birth_date = Column(Date, nullable=False)
@@ -18,12 +27,3 @@ class UserData(Base):
     zodiac_info = Column(Text, nullable=True)
     houses_info = Column(Text, nullable=True)
     vimshottari_dasha = Column(String, nullable=False)
-
-
-DATABASE_URL = "postgresql://jyotish:P6SSw0RdJyot1_sh@109.205.180.137:5432/jyotish"
-
-engine = create_engine(DATABASE_URL)
-Base.metadata.create_all(engine)
-
-Session = sessionmaker(bind=engine)
-session = Session()
