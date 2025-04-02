@@ -1,7 +1,11 @@
 from aiogram import types
 
 
-async def send_long_message(message: types.Message, text: str, max_length: int = 4096):
+async def send_long_message(
+        message: types.Message,
+        text: str,
+        max_length: int = 4096,
+):
     paragraphs = text.split('\n')
     current_message = ""
 
