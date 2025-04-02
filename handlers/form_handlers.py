@@ -9,7 +9,8 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from geopy.exc import GeocoderTimedOut
 from sqlalchemy.exc import SQLAlchemyError
 from geopy import Nominatim
-from database.models import Session, UserData
+from database.operations import UserDataDO
+from sqlalchemy.ext.asyncio import AsyncSession
 from services.astrology import calculate_planet_positions, draw_north_indian_chart, calculate_asc, get_house_info, \
     calculate_karakas, get_nakshatra_and_pada, get_moon_degree, get_moon_nakshatra
 from services.openai import chat_gpt
@@ -180,7 +181,7 @@ async def process_page_navigation(callback_query: types.CallbackQuery, state: FS
 
 
 @router.callback_query(lambda c: c.data.startswith('city_'))
-async def process_city_selection(callback_query: types.CallbackQuery, state: FSMContext):
+async def process_city_selection(callback_query: types.CallbackQuery, state: FSMContext, session: AsyncSession):
     _, latitude, longitude = callback_query.data.split('_')
     city_coords = (float(latitude), float(longitude))
 
@@ -192,10 +193,10 @@ async def process_city_selection(callback_query: types.CallbackQuery, state: FSM
         return
 
     await state.update_data(location=city_address)
-    await confirm_and_proceed(callback_query.message, state)
+    await confirm_and_proceed(callback_query.message, state, session)
 
 
-async def confirm_and_proceed(message: types.Message, state: FSMContext):
+async def confirm_and_proceed(message: types.Message, state: FSMContext, session: AsyncSession):
     user_data = await state.get_data()
     birth_date = user_data.get('birth_date')
     birth_time = user_data.get('birth_time')
@@ -206,38 +207,33 @@ async def confirm_and_proceed(message: types.Message, state: FSMContext):
         return
 
     try:
-        await calculate_and_send_chart(message, user_data)
+        await calculate_and_send_chart(message, user_data, session)
         await state.clear()
     except ValueError as e:
         await message.answer(
             f"Локация введена некорректно. Пожалуйста, введите корректные координаты или название города. {e}")
 
 
-async def save_user_data(message: types.Message, user_data: dict, interpretation: str = None,
+async def save_user_data(message: types.Message, session: AsyncSession, user_data: dict, interpretation: str = None,
                          zodiac_info: str = None, houses_info: str = None, vimshottari_dasha: str = None):
-    session = Session()
     try:
-        user_data_entry = UserData(
-            telegram_id=message.chat.id,
-            username=message.chat.username,
-            location=user_data['location'],
-            birth_date=datetime.strptime(user_data['birth_date'], "%d-%m-%Y").date(),
-            birth_time=datetime.strptime(user_data['birth_time'], "%H:%M:%S").time(),
-            chart_interpretation=interpretation,
-            zodiac_info=zodiac_info,
-            houses_info=houses_info,
-            vimshottari_dasha=vimshottari_dasha
-        )
-        session.add(user_data_entry)
-        session.commit()
-    except SQLAlchemyError as e:
-        session.rollback()
+        user_data_entry = {
+            "telegram_id": message.chat.id,
+            "username": message.chat.username,
+            "location": user_data['location'],
+            "birth_date": datetime.strptime(user_data['birth_date'], "%d-%m-%Y").date(),
+            "birth_time": datetime.strptime(user_data['birth_time'], "%H:%M:%S").time(),
+            "chart_interpretation": interpretation,
+            "zodiac_info": zodiac_info,
+            "houses_info": houses_info,
+            "vimshottari_dasha": vimshottari_dasha
+        }
+        await UserDataDO.add(session=session, **user_data_entry)
+    except Exception as e:
         await message.answer(f"Ошибка сохранения данных: {str(e)}")
-    finally:
-        session.close()
 
 
-async def calculate_and_send_chart(message: types.Message, user_data: dict):
+async def calculate_and_send_chart(message: types.Message, user_data: dict, session: AsyncSession):
     birth_date = user_data['birth_date']
     birth_time = user_data['birth_time']
     location = user_data['location']
@@ -300,6 +296,7 @@ async def calculate_and_send_chart(message: types.Message, user_data: dict):
     interpretation = await chat_gpt(house_info_text, vimshottari_dasha)
     await save_user_data(
         message,
+        session,
         user_data,
         interpretation=interpretation,
         zodiac_info=zodiac_info,
