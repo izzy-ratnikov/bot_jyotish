@@ -3,6 +3,7 @@ alembic==1.14.0
 geopy==2.4.1
 matplotlib==3.10.0
 pydantic==2.10.4
+pyswisseph==2.10.3.2
 pytz==2024.2
 SQLAlchemy==2.0.36
 swisseph==0.0.0.dev1
