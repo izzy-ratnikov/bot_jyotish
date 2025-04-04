@@ -1,0 +1,58 @@
+name: CI (Flake8 lint and Docker build and push)
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      DB_USER: ${{ secrets.DB_USER }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      DB_HOST: ${{ secrets.DB_HOST }}
+      DB_PORT: ${{ secrets.DB_PORT }}
+      DB_NAME: ${{ secrets.DB_NAME }}
+      REDIS_HOST: ${{ secrets.REDIS_HOST }}
+      REDIS_PORT: ${{ secrets.REDIS_PORT }}
+
+    steps:
+      - name: Клонирование репозитория
+        uses: actions/checkout@v4
+
+      - name: Установка Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.12.0"
+
+      - name: Установка зависимостей
+        run: |
+          pip install -r requirements.txt
+
+      - name: Проверка кода с flake8
+        run: |
+          pip install flake8
+          flake8 . --count --max-line-length=80 --statistics
+
+  docker:
+    needs: test
+    runs-on: ubuntu-latest
+    if: success() && (github.ref == 'refs/heads/main' || github.event.pull_request.merged == true)
+
+    steps:
+      - name: Клонирование репозитория
+        uses: actions/checkout@v4
+
+      - name: Вход в Docker Hub
+        run: echo "${{ secrets.DOCKER_HUB_PASSWORD }}" | docker login -u "burvelandrei" --password-stdin
+
+      - name: Сборка и пуш Docker образа
+        run: |
+          docker build -t burvelandrei/jyotish-bot:latest .
+          docker push burvelandrei/jyotish-bot:latest

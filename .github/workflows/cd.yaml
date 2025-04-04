@@ -1,0 +1,35 @@
+name: CD (Deploy to Server)
+
+on:
+  workflow_run:
+    workflows: ["CI (Flake8 lint and Docker build and push)"]
+    types:
+      - completed
+
+jobs:
+  deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy on Server
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            echo "Переключаемся в рабочую директорию..."
+            cd /home/jyotish_bot
+
+            echo "Вход в Docker Hub..."
+            echo "${{ secrets.DOCKER_HUB_PASSWORD }}" | docker login -u "burvelandrei" --password-stdin
+
+            echo "Останавливаем старый контейнер..."
+            docker-compose down || true
+
+            echo "Обновляем образ из DockerHub..."
+            docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/jyotish-bot:latest
+
+            echo "Запускаем новый контейнер..."
+            docker-compose up -d
