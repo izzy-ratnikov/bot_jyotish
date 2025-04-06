@@ -1,5 +1,4 @@
-from datetime import datetime
-
+from datetime import datetime, timedelta
 from aiogram import types, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.filters import Command
@@ -242,6 +241,14 @@ async def calculate_and_send_chart(message: types.Message, user_data: dict):
     birth_time = user_data['birth_time']
     location = user_data['location']
 
+    if "-" in birth_date:
+        birth_date_obj = datetime.strptime(birth_date, "%d-%m-%Y")
+    elif "." in birth_date:
+        birth_date_obj = datetime.strptime(birth_date, "%d.%m.%Y")
+    else:
+        await message.answer("Ошибка: Неверный формат даты рождения.")
+        return
+
     planets_positions, zodiac_signs = await calculate_planet_positions(birth_date, birth_time, location)
     karakas = await calculate_karakas(planets_positions)
     asc_positions, asc_zodiac_signs = await calculate_asc(birth_date, birth_time, location)
@@ -288,15 +295,40 @@ async def calculate_and_send_chart(message: types.Message, user_data: dict):
     years_remaining, years_passed = calculate_remaining_time(moon_degree, starting_planet)
     start_index = dasha_order.index(starting_planet)
     sequence = dasha_order[start_index:] + dasha_order[:start_index]
-    vimshottari_dasha = "Последовательность периодов\n"
+
+    vimshottari_dasha = "Последовательность периодов (Ви́мшоттари-да́ша):\n\n"
+    current_date = birth_date_obj
 
     for i, planet in enumerate(sequence):
         if i == 0:
-            vimshottari_dasha += f"▸ {planet}: {years_remaining:.2f} лет\n"
+            period_years = years_remaining
+            start_date = current_date
+            end_date = start_date + timedelta(days=period_years * 365.25)
+            vimshottari_dasha += (
+                f"▸ {planet}: {period_years:.2f} лет\n"
+                f"   Начало: {start_date.strftime('%d.%m.%Y')}\n"
+                f"   Конец: {end_date.strftime('%d.%m.%Y')}\n\n"
+            )
         else:
-            vimshottari_dasha += f"▸ {planet}: {planet_periods[planet]} лет\n"
-    vimshottari_dasha += f"▸ {starting_planet}: {years_passed:.2f} лет\n"
+            period_years = planet_periods[planet]
+            start_date = current_date
+            end_date = start_date + timedelta(days=period_years * 365.25)
+            vimshottari_dasha += (
+                f"▸ {planet}: {period_years:.2f} лет\n"
+                f"   Начало: {start_date.strftime('%d.%m.%Y')}\n"
+                f"   Конец: {end_date.strftime('%d.%m.%Y')}\n\n"
+            )
+        current_date = end_date
+
+    start_date = current_date
+    end_date = start_date + timedelta(days=years_passed * 365.25)
+    vimshottari_dasha += (
+        f"▸ {starting_planet}: {years_passed:.2f} лет\n"
+        f"   Начало: {start_date.strftime('%d.%m.%Y')}\n"
+        f"   Конец: {end_date.strftime('%d.%m.%Y')}\n"
+    )
     vimshottari_dasha += "Общая продолжительность: 120 лет"
+
     interpretation = await chat_gpt(house_info_text, vimshottari_dasha)
     await save_user_data(
         message,
@@ -311,7 +343,6 @@ async def calculate_and_send_chart(message: types.Message, user_data: dict):
     await message.answer(house_info_text)
 
     processing_message = await message.answer("Обрабатываем результаты расчета...")
-
     await processing_message.delete()
     await send_long_message(message, f"Расшифровка натальной карты:\n{interpretation}")
 
