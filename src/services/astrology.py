@@ -321,16 +321,25 @@ def years_to_years_months_days(years):
     return years_int, months, days
 
 
-async def calculate_antardasha(mahadasha_planet, mahadasha_duration, start_date):
+async def calculate_antardasha(mahadasha_planet, mahadasha_duration, start_date, is_first=False, is_last=False,
+                               birth_date=None, end_of_life=None):
     antardasha_text = f"\nПодпериоды (Антардаша) в Махадаше {mahadasha_planet}:\n\n"
     current_date = start_date
 
     start_index = dasha_order.index(mahadasha_planet)
     sequence = dasha_order[start_index:] + dasha_order[:start_index]
 
-    for planet in sequence:
+    for i, planet in enumerate(sequence):
         antardasha_years = (mahadasha_duration * planet_periods[planet]) / 120
         end_date = current_date + timedelta(days=antardasha_years * 365.25)
+
+        if is_first and current_date < birth_date:
+            current_date = birth_date
+            antardasha_years = (end_date - current_date).days / 365.25
+
+        if is_last and end_date > end_of_life:
+            end_date = end_of_life
+            antardasha_years = (end_date - current_date).days / 365.25
 
         years, months, days = years_to_years_months_days(antardasha_years)
 
@@ -340,5 +349,8 @@ async def calculate_antardasha(mahadasha_planet, mahadasha_duration, start_date)
             f"   Конец: {end_date.strftime('%d.%m.%Y')}\n\n"
         )
         current_date = end_date
+
+        if is_last and current_date >= end_of_life:
+            break
 
     return antardasha_text

@@ -303,6 +303,7 @@ async def calculate_and_send_chart(message: types.Message, user_data: dict):
     vimshottari_dasha = "Последовательность периодов (Ви́мшоттари-да́ша):\n\n"
     current_date = birth_date_obj
     mahadasha_details = ""
+    end_of_life = birth_date_obj + timedelta(days=120 * 365.25)
 
     for i, planet in enumerate(sequence):
         if i == 0:
@@ -314,8 +315,8 @@ async def calculate_and_send_chart(message: types.Message, user_data: dict):
                 f"   Начало: {start_date.strftime('%d.%m.%Y')}\n"
                 f"   Конец: {end_date.strftime('%d.%m.%Y')}\n\n"
             )
-
-            antardasha_text = await calculate_antardasha(planet, period_years, start_date)
+            antardasha_text = await calculate_antardasha(planet, period_years, start_date, is_first=True,
+                                                         birth_date=birth_date_obj)
             mahadasha_details += antardasha_text
         else:
             period_years = planet_periods[planet]
@@ -326,19 +327,22 @@ async def calculate_and_send_chart(message: types.Message, user_data: dict):
                 f"   Начало: {start_date.strftime('%d.%m.%Y')}\n"
                 f"   Конец: {end_date.strftime('%d.%m.%Y')}\n\n"
             )
-
             antardasha_text = await calculate_antardasha(planet, period_years, start_date)
             mahadasha_details += antardasha_text
         current_date = end_date
 
     start_date = current_date
-    end_date = start_date + timedelta(days=years_passed * 365.25)
+    end_date = end_of_life
+    period_years = years_passed
     vimshottari_dasha += (
-        f"▸ {starting_planet}: {years_passed:.2f} лет\n"
+        f"▸ {starting_planet}: {period_years:.2f} лет\n"
         f"   Начало: {start_date.strftime('%d.%m.%Y')}\n"
         f"   Конец: {end_date.strftime('%d.%m.%Y')}\n"
     )
     vimshottari_dasha += "Общая продолжительность: 120 лет"
+    antardasha_text = await calculate_antardasha(starting_planet, period_years, start_date, is_last=True,
+                                                 end_of_life=end_date)
+    mahadasha_details += antardasha_text
 
     interpretation = await chat_gpt(house_info_text, vimshottari_dasha)
     await save_user_data(
