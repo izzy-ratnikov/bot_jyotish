@@ -4,7 +4,8 @@ import io
 from matplotlib.path import Path
 from src.utils.chart_data import planet_positions_by_house, zodiac_signs_list, zodiac_coords, polygons, planets, \
     zodiac_names, get_basic_astro_data, add_position_data, position_data_with_retrograde, clean_planet_symbol, \
-    NAKSHATRAS
+    NAKSHATRAS, planet_periods, dasha_order
+from datetime import datetime, timedelta
 
 
 async def calculate_planet_positions(birth_date, birth_time, location):
@@ -140,6 +141,7 @@ async def draw_north_indian_chart(ascendant_sign, planet_positions):
         return aspects
 
     occupied_positions = {i: [] for i in range(12)}
+    planet_house_info = []
 
     for planet, position in planet_positions:
         house_index = int(position // 30)
@@ -176,6 +178,8 @@ async def draw_north_indian_chart(ascendant_sign, planet_positions):
 
         occupied_positions[house_index].append((x, y))
         ax.text(x, y, planet, fontsize=14, ha='center', va='center', color='black', fontweight='bold')
+
+        planet_house_info.append(f"{planet}, Дом: {house_index + 1}")
 
     for planet, position in planet_positions:
         house_index = int(position // 30)
@@ -227,7 +231,7 @@ async def draw_north_indian_chart(ascendant_sign, planet_positions):
     plt.savefig(buf, format='png', bbox_inches='tight', pad_inches=0.1)
     plt.close(fig)
     buf.seek(0)
-    return buf
+    return buf, planet_house_info
 
 
 async def get_house_info(ascendant_sign, planet_positions):
@@ -306,3 +310,35 @@ async def get_moon_nakshatra(planets_positions):
             nakshatra, _ = await get_nakshatra_and_pada(zodiac_sign, longitude)
             return nakshatra
     raise ValueError("Позиция Луны не найдена в данных.")
+
+
+def years_to_years_months_days(years):
+    total_days = years * 365.25
+    years_int = int(total_days // 365.25)
+    remaining_days = total_days - (years_int * 365.25)
+    months = int(remaining_days // 30.4375)
+    days = int(remaining_days - (months * 30.4375))
+    return years_int, months, days
+
+
+async def calculate_antardasha(mahadasha_planet, mahadasha_duration, start_date):
+    antardasha_text = f"\nПодпериоды (Антардаша) в Махадаше {mahadasha_planet}:\n\n"
+    current_date = start_date
+
+    start_index = dasha_order.index(mahadasha_planet)
+    sequence = dasha_order[start_index:] + dasha_order[:start_index]
+
+    for planet in sequence:
+        antardasha_years = (mahadasha_duration * planet_periods[planet]) / 120
+        end_date = current_date + timedelta(days=antardasha_years * 365.25)
+
+        years, months, days = years_to_years_months_days(antardasha_years)
+
+        antardasha_text += (
+            f"▸ {planet}: {years} лет, {months} мес., {days} дн.\n"
+            f"   Начало: {current_date.strftime('%d.%m.%Y')}\n"
+            f"   Конец: {end_date.strftime('%d.%m.%Y')}\n\n"
+        )
+        current_date = end_date
+
+    return antardasha_text

@@ -10,7 +10,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from geopy import Nominatim
 from src.database.models.models import Session, UserData
 from src.services.astrology import calculate_planet_positions, draw_north_indian_chart, calculate_asc, get_house_info, \
-    calculate_karakas, get_nakshatra_and_pada, get_moon_degree, get_moon_nakshatra
+    calculate_karakas, get_nakshatra_and_pada, get_moon_degree, get_moon_nakshatra, calculate_antardasha
 from src.services.openai import chat_gpt
 from src.utils.chart_data import zodiac_to_number, to_decimal_degrees, zodiac_symbols_to_names, get_starting_planet, \
     calculate_remaining_time, dasha_order, planet_periods
@@ -271,9 +271,9 @@ async def calculate_and_send_chart(message: types.Message, user_data: dict):
 
     house_info = await get_house_info(asc_sign, planets_positions)
 
-    chart_image = await draw_north_indian_chart(asc_sign_number, planets_positions)
+    chart_image, planet_house_info = await draw_north_indian_chart(asc_sign_number, planets_positions)
     input_file = BufferedInputFile(chart_image.read(), filename="chart.png")
-    await message.answer_photo(photo=input_file, caption="Ваш South Indian Chart.")
+    await message.answer_photo(photo=input_file, caption="Ваш North Indian Chart.")
 
     karakas_by_planet = {v: k for k, v in karakas.items()}
 
@@ -287,6 +287,10 @@ async def calculate_and_send_chart(message: types.Message, user_data: dict):
            (pada := (await get_nakshatra_and_pada(zodiac_symbols_to_names.get(zodiac_sign, zodiac_sign),
                                                   to_decimal_degrees(degree, minutes, seconds)))[1])
     ])
+
+    planet_house_text = "\n\nПланеты и их дома:\n" + "\n".join(planet_house_info)
+    zodiac_info_full = f"Знаки зодиака с градусами:\n{zodiac_info}{planet_house_text}"
+
     house_info_text = "Дома в карте:\n" + "\n".join(house_info)
 
     moon_nakshatra = await get_moon_nakshatra(planets_positions)
@@ -298,6 +302,7 @@ async def calculate_and_send_chart(message: types.Message, user_data: dict):
 
     vimshottari_dasha = "Последовательность периодов (Ви́мшоттари-да́ша):\n\n"
     current_date = birth_date_obj
+    mahadasha_details = ""
 
     for i, planet in enumerate(sequence):
         if i == 0:
@@ -309,6 +314,9 @@ async def calculate_and_send_chart(message: types.Message, user_data: dict):
                 f"   Начало: {start_date.strftime('%d.%m.%Y')}\n"
                 f"   Конец: {end_date.strftime('%d.%m.%Y')}\n\n"
             )
+
+            antardasha_text = await calculate_antardasha(planet, period_years, start_date)
+            mahadasha_details += antardasha_text
         else:
             period_years = planet_periods[planet]
             start_date = current_date
@@ -318,6 +326,9 @@ async def calculate_and_send_chart(message: types.Message, user_data: dict):
                 f"   Начало: {start_date.strftime('%d.%m.%Y')}\n"
                 f"   Конец: {end_date.strftime('%d.%m.%Y')}\n\n"
             )
+
+            antardasha_text = await calculate_antardasha(planet, period_years, start_date)
+            mahadasha_details += antardasha_text
         current_date = end_date
 
     start_date = current_date
@@ -334,11 +345,15 @@ async def calculate_and_send_chart(message: types.Message, user_data: dict):
         message,
         user_data,
         interpretation=interpretation,
-        zodiac_info=zodiac_info,
+        zodiac_info=zodiac_info_full,
         houses_info=house_info_text,
-        vimshottari_dasha=vimshottari_dasha
+        vimshottari_dasha=vimshottari_dasha + "\n" + mahadasha_details
     )
-    await message.answer(vimshottari_dasha)
+
+    await send_long_message(message, vimshottari_dasha)
+
+    await send_long_message(message, mahadasha_details)
+
     await message.answer(f"Знаки зодиака с градусами:\n{zodiac_info}\n{ascendant_string}")
     await message.answer(house_info_text)
 

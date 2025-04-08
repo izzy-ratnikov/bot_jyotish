@@ -2,18 +2,23 @@ from aiogram import types
 
 
 async def send_long_message(message: types.Message, text: str, max_length: int = 4096):
-    paragraphs = text.split('\n')
-    current_message = ""
+    if len(text) <= max_length:
+        await message.answer(text)
+        return
 
-    for paragraph in paragraphs:
+    parts = []
+    current_part = ""
 
-        if len(current_message) + len(paragraph) + 1 <= max_length:
-            current_message += paragraph + "\n"
+    for line in text.split('\n'):
+        if len(current_part) + len(line) + 1 <= max_length:
+            current_part += line + "\n"
         else:
+            if current_part:
+                parts.append(current_part.strip())
+            current_part = line + "\n"
 
-            if current_message.strip():
-                await message.answer(current_message.strip())
-            current_message = paragraph + "\n"
+    if current_part:
+        parts.append(current_part.strip())
 
-    if current_message.strip():
-        await message.answer(current_message.strip())
+    for part in parts:
+        await message.answer(part)
