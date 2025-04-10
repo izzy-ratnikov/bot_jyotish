@@ -5,7 +5,8 @@ from matplotlib.path import Path
 from src.utils.chart_data import planet_positions_by_house, zodiac_signs_list, zodiac_coords, polygons, planets, \
     zodiac_names, get_basic_astro_data, add_position_data, position_data_with_retrograde, clean_planet_symbol, \
     NAKSHATRAS, planet_periods, dasha_order
-from datetime import datetime, timedelta
+from datetime import timedelta
+from itertools import accumulate
 
 
 async def calculate_planet_positions(birth_date, birth_time, location):
@@ -321,36 +322,82 @@ def years_to_years_months_days(years):
     return years_int, months, days
 
 
-async def calculate_antardasha(mahadasha_planet, mahadasha_duration, start_date, is_first=False, is_last=False,
+async def calculate_antardasha(mahadasha_planet, full_period_years, mahadasha_start, is_first=False, is_last=False,
                                birth_date=None, end_of_life=None):
     antardasha_text = f"\nПодпериоды (Антардаша) в Махадаше {mahadasha_planet}:\n\n"
-    current_date = start_date
-
+    D = full_period_years
     start_index = dasha_order.index(mahadasha_planet)
     sequence = dasha_order[start_index:] + dasha_order[:start_index]
+    dur = [(planet_periods[Q] * D) / 120 for Q in sequence]
+    cum_dur = [0] + list(accumulate(dur))
 
-    for i, planet in enumerate(sequence):
-        antardasha_years = (mahadasha_duration * planet_periods[planet]) / 120
-        end_date = current_date + timedelta(days=antardasha_years * 365.25)
+    if is_first:
+        T = (birth_date - mahadasha_start).days / 365.25
+        k = next(i for i, cd in enumerate(cum_dur) if cd > T) - 1
+        if k < 0:
+            k = 0
 
-        if is_first and current_date < birth_date:
-            current_date = birth_date
-            antardasha_years = (end_date - current_date).days / 365.25
+        for i in range(k, len(sequence)):
+            planet = sequence[i]
+            antardasha_start = mahadasha_start + timedelta(days=cum_dur[i] * 365.25)
+            antardasha_end = mahadasha_start + timedelta(days=cum_dur[i + 1] * 365.25)
 
-        if is_last and end_date > end_of_life:
-            end_date = end_of_life
-            antardasha_years = (end_date - current_date).days / 365.25
+            if antardasha_start < birth_date:
+                antardasha_start = birth_date
 
-        years, months, days = years_to_years_months_days(antardasha_years)
+            mahadasha_end = mahadasha_start + timedelta(days=D * 365.25)
+            if antardasha_end > mahadasha_end:
+                antardasha_end = mahadasha_end
+            antardasha_years = (antardasha_end - antardasha_start).days / 365.25
+            if antardasha_years > 0:
+                years, months, days = years_to_years_months_days(antardasha_years)
+                antardasha_text += (
+                    f"▸ {planet}: {years} лет, {months} мес., {days} дн.\n"
+                    f"   Начало: {antardasha_start.strftime('%d.%m.%Y')}\n"
+                    f"   Конец: {antardasha_end.strftime('%d.%m.%Y')}\n\n"
+                )
+            if antardasha_end >= mahadasha_end:
+                break
+    elif is_last:
+        current_date = mahadasha_start
 
-        antardasha_text += (
-            f"▸ {planet}: {years} лет, {months} мес., {days} дн.\n"
-            f"   Начало: {current_date.strftime('%d.%m.%Y')}\n"
-            f"   Конец: {end_date.strftime('%d.%m.%Y')}\n\n"
-        )
-        current_date = end_date
+        for planet in sequence:
 
-        if is_last and current_date >= end_of_life:
-            break
+            antardasha_full_years = (planet_periods[planet] * D) / 120
+
+            end_date = current_date + timedelta(days=antardasha_full_years * 365.25)
+
+            if end_date > end_of_life:
+                end_date = end_of_life
+                antardasha_years = (end_date - current_date).days / 365.25
+            else:
+                antardasha_years = antardasha_full_years
+
+            if antardasha_years > 0:
+                years, months, days = years_to_years_months_days(antardasha_years)
+                antardasha_text += (
+                    f"▸ {planet}: {years} лет, {months} мес., {days} дн.\n"
+                    f"   Начало: {current_date.strftime('%d.%m.%Y')}\n"
+                    f"   Конец: {end_date.strftime('%d.%m.%Y')}\n\n"
+                )
+                current_date = end_date
+            else:
+                break
+
+            if current_date >= end_of_life:
+                break
+    else:
+
+        current_date = mahadasha_start
+        for planet in sequence:
+            antardasha_years = (planet_periods[planet] * D) / 120
+            end_date = current_date + timedelta(days=antardasha_years * 365.25)
+            years, months, days = years_to_years_months_days(antardasha_years)
+            antardasha_text += (
+                f"▸ {planet}: {years} лет, {months} мес., {days} дн.\n"
+                f"   Начало: {current_date.strftime('%d.%m.%Y')}\n"
+                f"   Конец: {end_date.strftime('%d.%m.%Y')}\n\n"
+            )
+            current_date = end_date
 
     return antardasha_text

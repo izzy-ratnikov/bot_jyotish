@@ -270,7 +270,6 @@ async def calculate_and_send_chart(message: types.Message, user_data: dict):
         return
 
     house_info = await get_house_info(asc_sign, planets_positions)
-
     chart_image, planet_house_info = await draw_north_indian_chart(asc_sign_number, planets_positions)
     input_file = BufferedInputFile(chart_image.read(), filename="chart.png")
     await message.answer_photo(photo=input_file, caption="Ваш North Indian Chart.")
@@ -290,7 +289,6 @@ async def calculate_and_send_chart(message: types.Message, user_data: dict):
 
     planet_house_text = "\n\nПланеты и их дома:\n" + "\n".join(planet_house_info)
     zodiac_info_full = f"Знаки зодиака с градусами:\n{zodiac_info}{planet_house_text}"
-
     house_info_text = "Дома в карте:\n" + "\n".join(house_info)
 
     moon_nakshatra = await get_moon_nakshatra(planets_positions)
@@ -301,47 +299,46 @@ async def calculate_and_send_chart(message: types.Message, user_data: dict):
     sequence = dasha_order[start_index:] + dasha_order[:start_index]
 
     vimshottari_dasha = "Последовательность периодов (Ви́мшоттари-да́ша):\n\n"
-    current_date = birth_date_obj
     mahadasha_details = ""
     end_of_life = birth_date_obj + timedelta(days=120 * 365.25)
+    # тут обновил
+    mahadasha_start = birth_date_obj - timedelta(days=years_passed * 365.25)
 
     for i, planet in enumerate(sequence):
         if i == 0:
-            period_years = years_remaining
-            start_date = current_date
-            end_date = start_date + timedelta(days=period_years * 365.25)
+            full_period_years = planet_periods[planet]
+            mahadasha_end = mahadasha_start + timedelta(days=full_period_years * 365.25)
             vimshottari_dasha += (
-                f"▸ {planet}: {period_years:.2f} лет\n"
-                f"   Начало: {start_date.strftime('%d.%m.%Y')}\n"
-                f"   Конец: {end_date.strftime('%d.%m.%Y')}\n\n"
+                f"▸ {planet}: {years_remaining:.2f} лет\n"
+                f"   Начало: {birth_date_obj.strftime('%d.%m.%Y')}\n"
+                f"   Конец: {mahadasha_end.strftime('%d.%m.%Y')}\n\n"
             )
-            antardasha_text = await calculate_antardasha(planet, period_years, start_date, is_first=True,
+            antardasha_text = await calculate_antardasha(planet, full_period_years, mahadasha_start, is_first=True,
                                                          birth_date=birth_date_obj)
             mahadasha_details += antardasha_text
         else:
-            period_years = planet_periods[planet]
-            start_date = current_date
-            end_date = start_date + timedelta(days=period_years * 365.25)
+            mahadasha_start = mahadasha_end
+            full_period_years = planet_periods[planet]
+            mahadasha_end = mahadasha_start + timedelta(days=full_period_years * 365.25)
             vimshottari_dasha += (
-                f"▸ {planet}: {period_years:.2f} лет\n"
-                f"   Начало: {start_date.strftime('%d.%m.%Y')}\n"
-                f"   Конец: {end_date.strftime('%d.%m.%Y')}\n\n"
+                f"▸ {planet}: {full_period_years:.2f} лет\n"
+                f"   Начало: {mahadasha_start.strftime('%d.%m.%Y')}\n"
+                f"   Конец: {mahadasha_end.strftime('%d.%m.%Y')}\n\n"
             )
-            antardasha_text = await calculate_antardasha(planet, period_years, start_date)
+            antardasha_text = await calculate_antardasha(planet, full_period_years, mahadasha_start)
             mahadasha_details += antardasha_text
-        current_date = end_date
 
-    start_date = current_date
-    end_date = end_of_life
-    period_years = years_passed
+    mahadasha_start = mahadasha_end
+    remaining_years = years_passed
+    mahadasha_end = end_of_life
     vimshottari_dasha += (
-        f"▸ {starting_planet}: {period_years:.2f} лет\n"
-        f"   Начало: {start_date.strftime('%d.%m.%Y')}\n"
-        f"   Конец: {end_date.strftime('%d.%m.%Y')}\n"
+        f"▸ {starting_planet}: {remaining_years:.2f} лет\n"
+        f"   Начало: {mahadasha_start.strftime('%d.%m.%Y')}\n"
+        f"   Конец: {mahadasha_end.strftime('%d.%m.%Y')}\n"
     )
     vimshottari_dasha += "Общая продолжительность: 120 лет"
-    antardasha_text = await calculate_antardasha(starting_planet, period_years, start_date, is_last=True,
-                                                 end_of_life=end_date)
+    antardasha_text = await calculate_antardasha(starting_planet, planet_periods[starting_planet], mahadasha_start,
+                                                 is_last=True, end_of_life=end_of_life)
     mahadasha_details += antardasha_text
 
     interpretation = await chat_gpt(house_info_text, vimshottari_dasha)
@@ -355,9 +352,7 @@ async def calculate_and_send_chart(message: types.Message, user_data: dict):
     )
 
     await send_long_message(message, vimshottari_dasha)
-
     await send_long_message(message, mahadasha_details)
-
     await message.answer(f"Знаки зодиака с градусами:\n{zodiac_info}\n{ascendant_string}")
     await message.answer(house_info_text)
 
