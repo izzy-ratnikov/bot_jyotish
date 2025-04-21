@@ -322,82 +322,122 @@ def years_to_years_months_days(years):
     return years_int, months, days
 
 
+async def calculate_pratyantardasha(antardasha_planet,
+                                    antardasha_actual_start,
+                                    antardasha_actual_duration_years,
+                                    antardasha_theoretical_start,
+                                    antardasha_theoretical_duration_years):
+    pratyantardasha_text = f"   Под-подпериоды (Пратьянтардаша) в Антардаше {antardasha_planet}:\n\n"
+
+    antardasha_actual_end = antardasha_actual_start + timedelta(days=antardasha_actual_duration_years * 365.25)
+
+    D_ant_theoretical = antardasha_theoretical_duration_years
+
+    start_index = dasha_order.index(antardasha_planet)
+    sequence = dasha_order[start_index:] + dasha_order[:start_index]
+
+    cumulative_theoretical_prat_days = 0.0
+
+    for i, planet in enumerate(sequence):
+
+        prat_theoretical_duration_years = (planet_periods[planet] * D_ant_theoretical) / 120
+        prat_theoretical_duration_days = prat_theoretical_duration_years * 365.25
+        prat_theoretical_start = antardasha_theoretical_start + timedelta(days=cumulative_theoretical_prat_days)
+        prat_theoretical_end = prat_theoretical_start + timedelta(days=prat_theoretical_duration_days)
+
+        display_start = max(prat_theoretical_start, antardasha_actual_start)
+        display_end = min(prat_theoretical_end, antardasha_actual_end)
+
+        cumulative_theoretical_prat_days += prat_theoretical_duration_days
+
+        if display_end > display_start:
+            actual_duration = display_end - display_start
+
+            if actual_duration.total_seconds() > 3600:
+                actual_years = actual_duration.total_seconds() / (365.25 * 24 * 60 * 60)
+                years, months, days = years_to_years_months_days(actual_years)
+
+                if years >= 0 and months >= 0 and days >= 0:
+                    pratyantardasha_text += (
+
+                        f"     • {planet}: {years} лет, {months} мес., {days} дн.\n"
+                        f"       Начало: {display_start.strftime('%d.%m.%Y')}\n"
+                        f"       Конец: {display_end.strftime('%d.%m.%Y')}\n"
+                    )
+
+        if prat_theoretical_start >= antardasha_actual_end:
+            break
+
+    if cumulative_theoretical_prat_days == 0.0 and pratyantardasha_text.endswith(":\n\n"):
+        pratyantardasha_text += "       (Нет под-подпериодов в этом отрезке)\n"
+
+    return pratyantardasha_text
+
+
 async def calculate_antardasha(mahadasha_planet, full_period_years, mahadasha_start, is_first=False, is_last=False,
                                birth_date=None, end_of_life=None):
     antardasha_text = f"\nПодпериоды (Антардаша) в Махадаше {mahadasha_planet}:\n\n"
     D = full_period_years
     start_index = dasha_order.index(mahadasha_planet)
     sequence = dasha_order[start_index:] + dasha_order[:start_index]
-    dur = [(planet_periods[Q] * D) / 120 for Q in sequence]
-    cum_dur = [0] + list(accumulate(dur))
 
-    if is_first:
-        T = (birth_date - mahadasha_start).days / 365.25
-        k = next(i for i, cd in enumerate(cum_dur) if cd > T) - 1
-        if k < 0:
-            k = 0
+    cumulative_theoretical_days = 0.0
 
-        for i in range(k, len(sequence)):
-            planet = sequence[i]
-            antardasha_start = mahadasha_start + timedelta(days=cum_dur[i] * 365.25)
-            antardasha_end = mahadasha_start + timedelta(days=cum_dur[i + 1] * 365.25)
+    for i, planet in enumerate(sequence):
 
-            if antardasha_start < birth_date:
-                antardasha_start = birth_date
+        theoretical_duration_years = (planet_periods[planet] * D) / 120
+        theoretical_duration_days = theoretical_duration_years * 365.25
 
-            mahadasha_end = mahadasha_start + timedelta(days=D * 365.25)
-            if antardasha_end > mahadasha_end:
-                antardasha_end = mahadasha_end
-            antardasha_years = (antardasha_end - antardasha_start).days / 365.25
-            if antardasha_years > 0:
-                years, months, days = years_to_years_months_days(antardasha_years)
-                antardasha_text += (
-                    f"▸ {planet}: {years} лет, {months} мес., {days} дн.\n"
-                    f"   Начало: {antardasha_start.strftime('%d.%m.%Y')}\n"
-                    f"   Конец: {antardasha_end.strftime('%d.%m.%Y')}\n\n"
-                )
-            if antardasha_end >= mahadasha_end:
-                break
-    elif is_last:
-        current_date = mahadasha_start
+        theoretical_start_date = mahadasha_start + timedelta(days=cumulative_theoretical_days)
+        theoretical_end_date = theoretical_start_date + timedelta(days=theoretical_duration_days)
 
-        for planet in sequence:
+        start_date = theoretical_start_date
+        end_date = theoretical_end_date
 
-            antardasha_full_years = (planet_periods[planet] * D) / 120
+        if is_first and birth_date and end_date < birth_date:
+            cumulative_theoretical_days += theoretical_duration_days
+            continue
+        if is_first and birth_date and start_date < birth_date:
+            start_date = birth_date
 
-            end_date = current_date + timedelta(days=antardasha_full_years * 365.25)
+        if is_last and end_of_life and start_date > end_of_life:
+            cumulative_theoretical_days += theoretical_duration_days
+            break
+        if is_last and end_of_life and end_date > end_of_life:
+            end_date = end_of_life
 
-            if end_date > end_of_life:
-                end_date = end_of_life
-                antardasha_years = (end_date - current_date).days / 365.25
-            else:
-                antardasha_years = antardasha_full_years
+        if end_date <= start_date:
+            cumulative_theoretical_days += theoretical_duration_days
+            continue
 
-            if antardasha_years > 0:
-                years, months, days = years_to_years_months_days(antardasha_years)
-                antardasha_text += (
-                    f"▸ {planet}: {years} лет, {months} мес., {days} дн.\n"
-                    f"   Начало: {current_date.strftime('%d.%m.%Y')}\n"
-                    f"   Конец: {end_date.strftime('%d.%m.%Y')}\n\n"
-                )
-                current_date = end_date
-            else:
-                break
+        actual_duration = end_date - start_date
 
-            if current_date >= end_of_life:
-                break
-    else:
+        if actual_duration.total_seconds() < 1:
+            cumulative_theoretical_days += theoretical_duration_days
+            continue
 
-        current_date = mahadasha_start
-        for planet in sequence:
-            antardasha_years = (planet_periods[planet] * D) / 120
-            end_date = current_date + timedelta(days=antardasha_years * 365.25)
-            years, months, days = years_to_years_months_days(antardasha_years)
+        actual_years = actual_duration.days / 365.25
+
+        if actual_years > 1e-9:
+            years, months, days = years_to_years_months_days(actual_years)
             antardasha_text += (
                 f"▸ {planet}: {years} лет, {months} мес., {days} дн.\n"
-                f"   Начало: {current_date.strftime('%d.%m.%Y')}\n"
-                f"   Конец: {end_date.strftime('%d.%m.%Y')}\n\n"
+                f"  Начало: {start_date.strftime('%d.%m.%Y')}\n"
+                f"  Конец: {end_date.strftime('%d.%m.%Y')}\n"
             )
-            current_date = end_date
+            pratyantardasha_text = await calculate_pratyantardasha(
+                antardasha_planet=planet,
+                antardasha_actual_start=start_date,
+                antardasha_actual_duration_years=actual_years,
+                antardasha_theoretical_start=theoretical_start_date,
+                antardasha_theoretical_duration_years=theoretical_duration_years
+
+            )
+            antardasha_text += pratyantardasha_text + "\n"
+
+        cumulative_theoretical_days += theoretical_duration_days
+
+        if is_last and end_of_life and end_date >= end_of_life:
+            break
 
     return antardasha_text
