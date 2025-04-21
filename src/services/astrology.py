@@ -313,6 +313,7 @@ async def get_moon_nakshatra(planets_positions):
     raise ValueError("Позиция Луны не найдена в данных.")
 
 
+# начало второго и третьего подпериода даши
 def years_to_years_months_days(years):
     total_days = years * 365.25
     years_int = int(total_days // 365.25)
